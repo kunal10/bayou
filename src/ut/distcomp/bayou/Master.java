@@ -1,3 +1,4 @@
+package ut.distcomp.bayou;
 import java.util.Scanner;
 
 public class Master {
