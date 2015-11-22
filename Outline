@@ -1,0 +1,32 @@
+Playlist(Tuple store): Each server has one copy of this. hashmap<String, String>
+WriteLog: Each server has one copy of this.
+ServerId: Has a recursive field to previous server Id. 
+    joinServer: should establish nc connections to all servers and do a creation write on one of the servers ?
+    What will the starting server have for an Id and whom will it write a creation update ?
+    stablize: timeout based on the number of servers in the system.
+    pause: pause the thread which sends the anti entropy messages.
+    start: release the thread  
+    
+Server:
+    Playlist, WriteLog, IsPrimary, CSN, Version Vector
+    Algos for :
+        rollback 
+        receive writes : resolve conflicts 
+        receive reads
+        anti-entropy
+        retirement algo - removing from version vectors. handle primary retirement in this. 
+        creation algo - you send back the server id 
+    Should you implement Bayou API ?  
+    Different message types which a server should handle : 
+        Retirement should also include whether primary is retiring 
+        Creation
+        Write from a server
+        Write from a client
+        Read
+        Anti-entropy 
+Client: 
+    Has an instance of session manager ?
+SessionManager: talks to the server. maintain a vector of read set and write set.
+This is a set of WID's. 
+
+WID : Server Id and accept stamp
