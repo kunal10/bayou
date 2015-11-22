@@ -10,6 +10,7 @@ package ut.distcomp.framework;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Date;
 import java.util.Properties;
 import java.util.logging.FileHandler;
@@ -27,21 +28,29 @@ public class Config {
 	 * @throws FileNotFoundException
 	 * @throws IOException
 	 */
-	public Config(int procNum, String logfile) throws IOException {
+	public Config(int procNum, String logfile){
 		this.procNum = procNum;
 		logger = Logger.getLogger("NetFramework" + procNum);
-		FileHandler fileHandler = new FileHandler(logfile);
+		FileHandler fileHandler = null;
+		try {
+			fileHandler = new FileHandler(logfile);
+		} catch (SecurityException | IOException e1) {
+		}
 		logger.addHandler(fileHandler);
 		logger.setUseParentHandlers(false);
 		fileHandler.setFormatter(new MyFormatter());
-		listenAddress = InetAddress.getByName("localhost");
+		try {
+			listenAddress = InetAddress.getByName("localhost");
+		} catch (UnknownHostException e) {
+			listenAddress = null;
+		}
 		listenPort = basePort + procNum;
 	}
 
 	/**
 	 * Own IP address server is running on.
 	 */
-	public final InetAddress listenAddress;
+	public InetAddress listenAddress;
 
 	/**
 	 * Port to start the server on.

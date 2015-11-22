@@ -50,7 +50,7 @@ public class NetController {
 	 * @param proc
 	 * @throws IOException
 	 */
-	private synchronized void initOutgoingConn(int proc) throws IOException {
+	public synchronized void initOutgoingConn(int proc) throws IOException {
 		OutgoingSock outSock = outSockets.get(proc);
 		if (outSock != null) {
 			config.logger
@@ -70,7 +70,7 @@ public class NetController {
 		}
 	}
 
-	private synchronized void breakOutgoingConnection(int proc) {
+	public synchronized void breakOutgoingConnection(int proc) {
 		OutgoingSock outSock = outSockets.get(proc);
 		if (outSock != null) {
 			shutDownOutgoingSocket(proc);
