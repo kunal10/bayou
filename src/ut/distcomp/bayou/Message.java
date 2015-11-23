@@ -50,6 +50,7 @@ public class Message implements Serializable {
 		
 	}
 	
+	@Override
 	public String toString() {
 		StringBuilder result = new StringBuilder();
 		result.append("\n\nSrc: " + src);
