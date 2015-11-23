@@ -17,7 +17,9 @@ public class Message implements Serializable {
 		STATE_REQ, // CLIENT SERVER
 		STATE_RES, // SERVER CLIENT
 		READ, // CLIENT SERVER
+		READ_RES, // SERVER CLIENT
 		WRITE, // X SERVER :X in {CLIENT,SERVER}
+		WRITE_RES, // SERVER CLIENT
 		CREATE_REQ, // SERVER SERVER
 		CREATE_RES, // SERVER SERVER
 		RETIRE, // SERVER SERVER
@@ -57,6 +59,22 @@ public class Message implements Serializable {
 		msgType = MessageType.READ;
 		op = new Operation(OperationType.GET, TransactionType.READ, song, null,
 				null);
+	}
+
+	public void setReadResponse(String song, String url) {
+		srcType = NodeType.SERVER;
+		destType = NodeType.CLIENT;
+		msgType = MessageType.READ_RES;
+		op = new Operation(OperationType.GET, TransactionType.READ, song, url,
+				null);
+
+	}
+	
+	public void setWriteResponse(WriteId wid){
+		srcType = NodeType.SERVER;
+		destType = NodeType.CLIENT;
+		msgType = MessageType.WRITE_RES;
+		wid = wid;
 	}
 
 	// NOTE : url is null for delete operations

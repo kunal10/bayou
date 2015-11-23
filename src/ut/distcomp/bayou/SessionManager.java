@@ -2,11 +2,8 @@ package ut.distcomp.bayou;
 
 import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
-
-import ut.distcomp.bayou.Message.MessageType;
 import ut.distcomp.bayou.Message.NodeType;
 import ut.distcomp.bayou.Operation.OperationType;
-import ut.distcomp.bayou.Operation.TransactionType;
 import ut.distcomp.framework.NetController;
 
 public class SessionManager {
@@ -62,18 +59,15 @@ public class SessionManager {
 	}
 
 	private void sendReadToServer(String songName) {
-		Message m = new Message(clientId, serverProcId, NodeType.CLIENT,
-				NodeType.SERVER, MessageType.READ,
-				new Operation(OperationType.GET, TransactionType.READ, songName,
-						"", null));
+		Message m = new Message(clientId, serverProcId, NodeType.CLIENT);
+		m.setReadContent(songName);
 		nc.sendMsg(m);
 	}
 
 	private void sendWriteToServer(String songName, String url,
 			OperationType op) {
-		Message m = new Message(clientId, serverProcId, NodeType.CLIENT,
-				NodeType.SERVER, MessageType.WRITE,
-				new Operation(op, TransactionType.WRITE, songName, url, null));
+		Message m = new Message(clientId, serverProcId, NodeType.CLIENT);
+		m.setWriteContent(NodeType.CLIENT, op, songName, url, null);
 		nc.sendMsg(m);
 	}
 
@@ -93,10 +87,10 @@ public class SessionManager {
 
 	private boolean guarantee(HashMap<ServerId, Integer> serverVector) {
 		// Check whether S dominates the read vector
-		if (!isDominant(serverVector, readVector)) {
+		if (!dominates(serverVector, readVector)) {
 			return false;
 		}
-		if (!isDominant(serverVector, writeVector)) {
+		if (!dominates(serverVector, writeVector)) {
 			return false;
 		}
 		return true;
@@ -106,7 +100,7 @@ public class SessionManager {
 	 * Server vector is dominant to client vector if its is greater than equal
 	 * to all components.
 	 */
-	private boolean isDominant(HashMap<ServerId, Integer> serverVector,
+	private boolean dominates(HashMap<ServerId, Integer> serverVector,
 			HashMap<ServerId, Integer> clientVector) {
 		for (ServerId server : serverVector.keySet()) {
 			if (clientVector.containsKey(server)) {
@@ -128,10 +122,10 @@ public class SessionManager {
 
 	private final HashMap<ServerId, Integer> readVector;
 	private final HashMap<ServerId, Integer> writeVector;
-	private static final String errorDep = "ERR_DEP";
 	private int clientId;
 	private int serverProcId;
 	private NetController nc;
 	private BlockingQueue<Message> queue;
 
+	private static final String errorDep = "ERR_DEP";
 }
