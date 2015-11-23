@@ -19,11 +19,11 @@ public class SessionManager {
 	}
 	
 	private boolean ReadGuarantee(){
-		
+		return false;
 	}
 	
 	private boolean WriteGuarantee(){
-		
+		return false;
 	}
 	
 	// private HashMap<WriteID, Integer> readSet;
