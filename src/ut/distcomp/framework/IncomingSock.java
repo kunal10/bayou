@@ -13,6 +13,7 @@ import java.io.ObjectInputStream;
 import java.net.Socket;
 import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -21,22 +22,24 @@ import ut.distcomp.bayou.Message;
 public class IncomingSock extends Thread {
 	Socket sock;
 	ObjectInputStream in;
-	private volatile boolean shutdownSet;
+	
 	Logger logger;
+	
 
 	public IncomingSock(Socket sock, ObjectInputStream inputStream,
-			Logger logger) throws IOException {
+			LinkedBlockingQueue<Message> queue, Logger logger) throws IOException {
 		this.sock = sock;
 		in = inputStream;
 		sock.shutdownOutput();
 		this.logger = logger;
+		this.queue = queue;
 	}
 
 	public void run() {
 		while (!shutdownSet) {
 			try {
 				Message msg = (Message) in.readObject();
-				// TODO: Put to a queue
+				queue.add(msg);
 			} catch (EOFException e) {
 				logger.log(Level.SEVERE, "EOF Exception");
 				cleanShutdown();
@@ -75,4 +78,7 @@ public class IncomingSock extends Thread {
 		} catch (IOException e) {
 		}
 	}
+	
+	private LinkedBlockingQueue<Message> queue;
+	private volatile boolean shutdownSet;
 }
