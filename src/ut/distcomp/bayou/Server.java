@@ -48,57 +48,7 @@ public class Server implements NetworkNodes {
 		}
 	}
 
-	// TODO: On creation when should other messages start coming
-	public void receiveMessages() {
-		// TODO: Will blocking queue be a problem for pause
-		while (pause) {
-			Message m = null;
-			try {
-				m = queue.take();
-			} catch (InterruptedException e) {
-				logger.info("Interrupted while waiting for message");
-			}
-			switch (m.getMsgType()) {
-			case ANTI_ENTROPY:
-				startAntiEntropy(m.getSrc());
-				break;
-			case CREATE_REQ:
-				creationWrite(m.getSrc());
-				break;
-			case CREATE_RES:
-				setServerId(m);
-				break;
-			case READ:
-				// TODO: Read from write log
-				break;
-			case RETIRE:
-				break;
-			case STATE_REQ:
-				break;
-			case WRITE:
-				break;
-			default:
-				logger.severe("Shouldn't have received " + m.toString());
-				break;
-			}
-		}
-	}
 
-	private void setServerId(Message m) {
-		serverId = new ServerId(m.getWriteId().getAcceptstamp(),
-				m.getWriteId().getServerId());
-	}
-
-	private void creationWrite(int src) {
-		// TODO Auto-generated method stub
-		// TODO Send a create_res to the source
-
-	}
-
-	private void startAntiEntropy(int src) {
-		// TODO Auto-generated method stub
-
-	}
 
 	private final int serverPid;
 	private final NetController nc;
