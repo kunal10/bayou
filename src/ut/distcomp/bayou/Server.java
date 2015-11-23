@@ -12,9 +12,15 @@ public class Server implements NetworkNodes {
 	public Server(int serverPid) {
 		this.serverPid = serverPid;
 		this.queue = new LinkedBlockingQueue<>();
-		this.datastore = new DataStore();
 		this.nc = new NetController(
 				new Config(serverPid, "LogServer" + serverPid), queue);
+		this.dataStore = new DataStore();
+		this.writeLog = new WriteLog();
+		// This will be set 
+		this.serverId = null;
+		this.isPrimary = false;
+		this.csn = -1;
+		this.versionVector = new HashMap<>();
 	}
 
 	public void joinServer(){
@@ -42,13 +48,12 @@ public class Server implements NetworkNodes {
 	private final int serverPid;
 	private final NetController nc;
 	private final LinkedBlockingQueue<Message> queue;
-	private final DataStore datastore;
-	// TODO(klad): Write Log
-	// private final WriteLog writeLog;
+	private final DataStore dataStore;
+	private WriteLog writeLog;
 	private ServerId serverId;
 	// TODO: Where should you set it for the first time
 	private boolean isPrimary;
 	private int csn;
-	private HashMap<ServerId, Integer> VersionVector;
+	private HashMap<ServerId, Integer> versionVector;
 	
 }

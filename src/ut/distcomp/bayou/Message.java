@@ -74,7 +74,7 @@ public class Message implements Serializable {
 		srcType = NodeType.SERVER;
 		destType = NodeType.CLIENT;
 		msgType = MessageType.WRITE_RES;
-		wid = wid;
+		writeId = wid;
 	}
 
 	// NOTE : url is null for delete operations
