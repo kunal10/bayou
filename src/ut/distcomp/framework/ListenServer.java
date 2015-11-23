@@ -13,6 +13,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 
 import ut.distcomp.bayou.Message;
@@ -42,10 +43,11 @@ public class ListenServer extends Thread {
 		}
 	}
 
-	protected ListenServer(Config conf,
-			HashMap<Integer, IncomingSock> sockets) {
+	protected ListenServer(Config conf, HashMap<Integer, IncomingSock> sockets,
+			LinkedBlockingQueue<Message> queue) {
 		this.conf = conf;
 		this.socketList = sockets;
+		this.queue = queue;
 		startServerSock();
 	}
 
@@ -63,7 +65,7 @@ public class ListenServer extends Thread {
 								+ incomingProcId);
 				IncomingSock incomingSock = null;
 				incomingSock = new IncomingSock(incomingSocket, inputStream,
-						conf.logger);
+						queue, conf.logger);
 
 				synchronized (socketList) {
 					socketList.put(incomingProcId, incomingSock);
@@ -91,4 +93,6 @@ public class ListenServer extends Thread {
 					"Server %d: Error closing server socket", procNum), e);
 		}
 	}
+
+	private final LinkedBlockingQueue<Message> queue;
 }
