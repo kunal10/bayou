@@ -12,6 +12,7 @@ local.properties
 
 # Log files.
 *Log*
+!*Log*.java
 
 # Text files.
 *.txt 

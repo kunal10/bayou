@@ -15,7 +15,9 @@ Server:
         receive reads
         anti-entropy
         retirement algo - removing from version vectors. handle primary retirement in this. 
-        creation algo - you send back the server id 
+        creation algo - you send back the server id.
+        logic for pause and start
+        logic primary ?? 
     Should you implement Bayou API ?  
     Different message types which a server should handle : 
         Retirement should also include whether primary is retiring 
@@ -23,7 +25,8 @@ Server:
         Write from a server
         Write from a client
         Read
-        Anti-entropy 
+        Anti-entropy req
+        Anti-entropy res
 Client: 
     Has an instance of session manager ?
 SessionManager: talks to the server. maintain a vector of read set and write set.
