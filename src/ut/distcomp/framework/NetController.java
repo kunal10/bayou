@@ -16,6 +16,7 @@ import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import ut.distcomp.bayou.Message;
 
@@ -32,12 +33,13 @@ public class NetController {
 	private final HashMap<Integer, OutgoingSock> outSockets;
 	private final ListenServer listener;
 
-	public NetController(Config config) {
+	public NetController(Config config, LinkedBlockingQueue<Message> queue) {
 		this.config = config;
 		inSockets = new HashMap<>();
 		outSockets = new HashMap<>();
-		listener = new ListenServer(config, inSockets);
+		listener = new ListenServer(config, inSockets, queue);
 		listener.start();
+		
 	}
 
 	public Config getConfig() {
