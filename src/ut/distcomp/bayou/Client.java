@@ -1,8 +1,9 @@
 package ut.distcomp.bayou;
 
 import java.io.IOException;
+import java.util.concurrent.LinkedBlockingQueue;
 
-import ut.distcomp.bayou.Utils.TransactionType;
+import ut.distcomp.bayou.Operation.OperationType;
 import ut.distcomp.framework.Config;
 import ut.distcomp.framework.NetController;
 
@@ -10,8 +11,9 @@ public class Client implements NetworkNodes {
 
 	public Client(int clientId) {
 		this.sessionManager = new SessionManager();
+		this.queue = new LinkedBlockingQueue<>();
 		this.nc = new NetController(
-				new Config(clientId, "LogClient" + clientId));
+				new Config(clientId, "LogClient" + clientId), queue);
 		this.clientId = clientId;
 	}
 
@@ -26,17 +28,17 @@ public class Client implements NetworkNodes {
 	}
 
 	public void put(String songName, String url) {
-		sessionManager.ExecuteTransaction(TransactionType.PUT, songName, url);
+		sessionManager.ExecuteTransaction(OperationType.PUT, songName, url);
 	}
 
 	public void get(String songName) {
-		String result = sessionManager.ExecuteTransaction(TransactionType.GET,
+		String result = sessionManager.ExecuteTransaction(OperationType.GET,
 				songName, "");
 		System.out.println(result);
 	}
 
 	public void delete(String songName) {
-		sessionManager.ExecuteTransaction(TransactionType.DELETE, songName, "");
+		sessionManager.ExecuteTransaction(OperationType.DELETE, songName, "");
 	}
 
 	@Override
@@ -53,4 +55,5 @@ public class Client implements NetworkNodes {
 	private final int clientId;
 	private final SessionManager sessionManager;
 	private final NetController nc;
+	private final LinkedBlockingQueue<Message> queue;
 }

@@ -2,19 +2,22 @@ package ut.distcomp.bayou;
 
 import java.util.HashMap;
 
-import ut.distcomp.bayou.Utils.TransactionType;
+import ut.distcomp.bayou.Operation.OperationType;
 
 public class SessionManager {
 
+	public SessionManager(){
+		readSet = new HashMap<>();
+		writeSet = new HashMap<>();
+	}
 	
-	public String ExecuteTransaction(TransactionType delete, String songName,
+	public String ExecuteTransaction(OperationType op, String songName,
 			String string) {
-		/*
-		 * if(transaction type = read)
-		 * 		call read gurantees
-		 * else
-		 * 		call write gurantees 
-		 */
+		if(op == OperationType.GET){
+			
+		}else{
+			
+		}
 		return null;
 	}
 	
@@ -26,7 +29,7 @@ public class SessionManager {
 		return false;
 	}
 	
-	// private HashMap<WriteID, Integer> readSet;
-	// private HashMap<WriteID, Integer> writeSet;
+	private final HashMap<ServerId, Integer> readSet;
+	private final HashMap<ServerId, Integer> writeSet;
 
 }
