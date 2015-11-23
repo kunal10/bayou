@@ -25,7 +25,8 @@ Server:
         Write from a server
         Write from a client
         Read
-        Anti-entropy 
+        Anti-entropy req
+        Anti-entropy res
 Client: 
     Has an instance of session manager ?
 SessionManager: talks to the server. maintain a vector of read set and write set.
