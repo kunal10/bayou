@@ -118,8 +118,8 @@ public class NetController {
 	 * @param msg
 	 * @return bool indicating success
 	 */
-	public synchronized boolean sendMsg(int process, Message msg) {
-		// TODO: get destination from the message
+	public synchronized boolean sendMsg(Message msg) {
+		int process = msg.getDest();
 		try {
 			OutgoingSock outSocket = outSockets.get(process);
 			if (outSocket != null) {

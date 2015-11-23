@@ -10,17 +10,18 @@ import ut.distcomp.framework.NetController;
 public class Client implements NetworkNodes {
 
 	public Client(int clientId) {
-		this.sessionManager = new SessionManager();
 		this.queue = new LinkedBlockingQueue<>();
 		this.nc = new NetController(
 				new Config(clientId, "LogClient" + clientId), queue);
 		this.clientId = clientId;
+		this.sessionManager = new SessionManager(clientId, serverId, nc, queue);
 	}
 
 	public void joinClient(int i) {
 		try {
 			nc.initOutgoingConn(i);
 			serverId = i;
+			sessionManager.setServerProcId(i);
 		} catch (IOException e) {
 			nc.getConfig().logger.severe(
 					"Could not initialze outgoing connection to server " + i);
