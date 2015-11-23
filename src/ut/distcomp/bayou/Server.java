@@ -8,7 +8,6 @@ import ut.distcomp.framework.Config;
 import ut.distcomp.framework.NetController;
 
 public class Server implements NetworkNodes {
-
 	public Server(int serverPid) {
 		this.serverPid = serverPid;
 		this.queue = new LinkedBlockingQueue<>();
@@ -21,14 +20,17 @@ public class Server implements NetworkNodes {
 		this.isPrimary = false;
 		this.csn = -1;
 		this.versionVector = new HashMap<>();
+		this.pause = false;
 	}
 
-	public void joinServer(){
+	public void joinServer() {
+		// TODO(asvenk) :
 		// Make nc connections to all other existing servers
 		// Run creation algo and get a server ID
 	}
 	
 	public void retireServer(){
+		// TODO :
 		// Run retirement protocol
 	}
 	
@@ -44,6 +46,36 @@ public class Server implements NetworkNodes {
 		} catch (IOException e) {
 		}
 	}
+	
+	public void Pause() {
+		pause = true;
+	}
+	public void Start() {
+		pause = false;
+	}
+	
+	private void antiEntropy(Message m) {
+		int rCsn = m.getCsn();
+		if (rCsn < csn) {
+			while() {
+				
+			}
+		}
+	}
+	
+	class ReceiveThread extends Thread {
+		public void run() {
+			while(true) {
+				if (pause) {
+					try {
+						Thread.sleep(100);
+					} catch (InterruptedException e) {}
+					continue;
+				}
+				
+			}
+		}
+	}
 
 	private final int serverPid;
 	private final NetController nc;
@@ -55,5 +87,5 @@ public class Server implements NetworkNodes {
 	private boolean isPrimary;
 	private int csn;
 	private HashMap<ServerId, Integer> versionVector;
-	
+	private boolean pause;
 }
