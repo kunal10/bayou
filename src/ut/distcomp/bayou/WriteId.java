@@ -16,6 +16,11 @@ public class WriteId implements Comparable<WriteId>, Serializable {
 		this.serverId = serverId;
 	}
 
+	public boolean isEquivalent(WriteId other) {
+		return this.acceptstamp == other.getAcceptstamp()
+				&& this.serverId == other.getServerId();
+	}
+
 	@Override
 	public int compareTo(WriteId other) {
 		if (this == other) {
@@ -24,7 +29,7 @@ public class WriteId implements Comparable<WriteId>, Serializable {
 		if (this.csn != POSITIVE_INFINITY) {
 			if (this.csn < other.getCsn()) {
 				return SMALLER;
-			} 
+			}
 			return GREATER;
 		} else if (other.getCsn() != POSITIVE_INFINITY) {
 			return GREATER;
@@ -55,6 +60,10 @@ public class WriteId implements Comparable<WriteId>, Serializable {
 		}
 		result.append(" >");
 		return result.toString();
+	}
+	
+	public boolean isCommitted() {
+		return csn < POSITIVE_INFINITY;
 	}
 
 	public int getCsn() {

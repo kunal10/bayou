@@ -53,6 +53,10 @@ public class Operation {
 	public WriteId getWriteId() {
 		return writeId;
 	}
+	
+	public void setWriteId(WriteId writeId) {
+		this.writeId = writeId;
+	}
 
 	private OperationType opType;
 	private TransactionType transactionType;

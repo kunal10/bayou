@@ -15,22 +15,22 @@ public class Message implements Serializable {
 
 	public enum MessageType {
 		// @formatter:off
-		// MessageType		SourceType	DestinationType
-		STATE_REQ, 			// CLIENT 	SERVER
-		STATE_RES, 			// SERVER 	CLIENT
-		READ, 				// CLIENT 	SERVER
-		READ_RES, 			// SERVER	CLIENT
-		WRITE, 				// X 		SERVER 			:X in {CLIENT,SERVER}
-		WRITE_RES, 			// SERVER 	CLIENT
-		CREATE_REQ, 		// SERVER 	SERVER
-		CREATE_RES, 		// SERVER 	SERVER
-		RETIRE, 			// SERVER 	SERVER
-		ANTI_ENTROPY_REQ, 	// SERVER 	SERVER
-		ANTI_ENTROPY_RES,	// SERVER 	SERVER
+		// MessageType SourceType DestinationType
+		STATE_REQ, // CLIENT SERVER
+		STATE_RES, // SERVER CLIENT
+		READ, // CLIENT SERVER
+		READ_RES, // SERVER CLIENT
+		WRITE, // X SERVER :X in {CLIENT,SERVER}
+		WRITE_RES, // SERVER CLIENT
+		CREATE_REQ, // SERVER SERVER
+		CREATE_RES, // SERVER SERVER
+		RETIRE, // SERVER SERVER
+		ANTI_ENTROPY_REQ, // SERVER SERVER
+		ANTI_ENTROPY_RES, // SERVER SERVER
 		// @formatter:on
 	}
 
-	public Message(int src, int dest, NodeType srcType) {
+	public Message(int src, int dest) {
 		super();
 		this.src = src;
 		this.dest = dest;
@@ -65,20 +65,14 @@ public class Message implements Serializable {
 				null);
 	}
 
-	public void setReadResContent(String song, String url) {
+	public void setReadResContent(String song, String url,
+			HashMap<ServerId, Integer> vv) {
 		srcType = NodeType.SERVER;
 		destType = NodeType.CLIENT;
 		msgType = MessageType.READ_RES;
 		op = new Operation(OperationType.GET, TransactionType.READ, song, url,
 				null);
-
-	}
-
-	public void setWriteResContent(WriteId wid) {
-		srcType = NodeType.SERVER;
-		destType = NodeType.CLIENT;
-		msgType = MessageType.WRITE_RES;
-		writeId = wid;
+		versionVector = vv;
 	}
 
 	// NOTE : url is null for delete operations
@@ -91,6 +85,13 @@ public class Message implements Serializable {
 		op = new Operation(opType, TransactionType.WRITE, song, url, wId);
 	}
 
+	public void setWriteResContent(WriteId wId) {
+		srcType = NodeType.SERVER;
+		destType = NodeType.CLIENT;
+		msgType = MessageType.WRITE_RES;
+		writeId = wId;
+	}
+
 	public void setAntiEntropyReqContent(HashMap<ServerId, Integer> vv,
 			int commitSeqNo) {
 		srcType = NodeType.SERVER;
@@ -99,8 +100,8 @@ public class Message implements Serializable {
 		versionVector = vv;
 		csn = commitSeqNo;
 	}
-	
-	public void setAntiEntropyResContent(SortedSet<WriteId> unknownWrites) {
+
+	public void setAntiEntropyResContent(SortedSet<Operation> unknownWrites) {
 		srcType = NodeType.SERVER;
 		destType = NodeType.SERVER;
 		msgType = MessageType.ANTI_ENTROPY_RES;
@@ -145,10 +146,10 @@ public class Message implements Serializable {
 		}
 		if (writeSet != null) {
 			result.append("\nWriteSet:");
-			Iterator<WriteId> it = writeSet.iterator();
+			Iterator<Operation> it = writeSet.iterator();
 			while (it.hasNext()) {
-				WriteId wId = it.next();
-				result.append("\t" + wId.toString());
+				Operation op = it.next();
+				result.append("\t" + op.toString());
 			}
 		}
 		if (versionVector != null) {
@@ -188,15 +189,15 @@ public class Message implements Serializable {
 	public WriteId getWriteId() {
 		return writeId;
 	}
-	
-	public SortedSet<WriteId> getWriteSet() {
+
+	public SortedSet<Operation> getWriteSet() {
 		return writeSet;
 	}
 
 	public HashMap<ServerId, Integer> getVersionVector() {
 		return versionVector;
 	}
-	
+
 	public int getCsn() {
 		return csn;
 	}
@@ -212,8 +213,7 @@ public class Message implements Serializable {
 	private MessageType msgType;
 	private Operation op;
 	private WriteId writeId;
-	// TODO(klad) : Confirm if we need this.
-	private SortedSet<WriteId> writeSet;
+	private SortedSet<Operation> writeSet;
 	private HashMap<ServerId, Integer> versionVector;
 	private int csn;
 	private boolean isPrimary;
