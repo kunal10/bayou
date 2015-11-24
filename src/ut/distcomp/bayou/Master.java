@@ -30,7 +30,7 @@ public class Master {
 				serverId = Integer.parseInt(inputLine[2]);
 				/*
 				 * Start a new client with the id specified and connect it to
-				 * the server
+				 * the server. Start on both.
 				 */
 				break;
 			case "breakConnection":
@@ -38,7 +38,7 @@ public class Master {
 				id2 = Integer.parseInt(inputLine[2]);
 				/*
 				 * Break the connection between a client and a server or between
-				 * two servers
+				 * two servers. Break on both sides.
 				 */
 				break;
 			case "restoreConnection":

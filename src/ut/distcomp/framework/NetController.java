@@ -45,6 +45,14 @@ public class NetController {
 	public Config getConfig() {
 		return config;
 	}
+	
+	public boolean isOutgoingAvailable(int proc){
+		OutgoingSock outSock = outSockets.get(proc);
+		if(outSock == null){
+			return false;
+		}
+		return true;
+	}
 
 	/**
 	 * Establish outgoing connection to a process
@@ -53,8 +61,7 @@ public class NetController {
 	 * @throws IOException
 	 */
 	public synchronized void initOutgoingConn(int proc) throws IOException {
-		OutgoingSock outSock = outSockets.get(proc);
-		if (outSock != null) {
+		if (isOutgoingAvailable(proc)) {
 			config.logger
 					.severe("Outgoing socket for " + proc + " already exists");
 		} else {

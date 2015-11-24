@@ -8,8 +8,15 @@ import java.util.TreeSet;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Logger;
 
+import ut.distcomp.bayou.Message.MessageType;
 import ut.distcomp.framework.Config;
 import ut.distcomp.framework.NetController;
+
+// TODO(klad): Are you updating the version vector on receiving writes with their 
+// timestamp. Then any server which receives a creation write during anti entropy 
+// doesn't need any exclusive logic to be executed
+// TODO(asvenk): setting up new connections when you get some message from a 
+// server who is not there in your outgoing connections.
 
 public class Server implements NetworkNodes {
 	public Server(int serverPid) {
@@ -29,10 +36,11 @@ public class Server implements NetworkNodes {
 		this.pause = false;
 	}
 
-	public void joinServer(List<Integer> availableServers) {
+	public void JoinServer(List<Integer> availableServers) {
 		if (availableServers.size() == 0) {
-			// This is the first server to join the system. Set your own server
-			// id to null. And write the first entry into log.
+			// TODO: This is the first server to join the system. Set your own
+			// server id to null. And write the first entry into log.
+			serverId = new ServerId(0, null);
 		} else {
 			// Take the first available server and initiate connection with it.
 			int firstSid = availableServers.get(0);
@@ -40,26 +48,31 @@ public class Server implements NetworkNodes {
 			Message m = new Message(serverPid, firstSid);
 			m.setCreateReqContent();
 			Message createResp = getCreateResponse();
-			serverId = new ServerId(createResp.getWriteId().getAcceptstamp(),
-					createResp.getWriteId().getServerId());
-			// TODO: Extract writeset from the message and execute it on this
-			// server.
-			connectToServers(availableServers);
+			processCreateRes(createResp);
 			// TODO: Start Receive thread and anti entropy thread
+			connectToServers(availableServers);
+
 		}
 	}
 
 	private Message getCreateResponse() {
-		// TODO Auto-generated method stub
-		return null;
+		Message m = null;
+		do {
+			try {
+				m = queue.take();
+			} catch (InterruptedException e) {
+			}
+		} while (m.getMsgType() != MessageType.CREATE_RES);
+		return m;
 	}
 
 	private void connectToServers(List<Integer> availableServers) {
-		// TODO Auto-generated method stub
-		
+		for (int i = 1; i < availableServers.size(); i++) {
+			restoreConnection(availableServers.get(i));
+		}
 	}
 
-	public void retireServer() {
+	public void RetireServer() {
 		// TODO :
 		// Run retirement protocol
 	}
@@ -85,6 +98,13 @@ public class Server implements NetworkNodes {
 		pause = false;
 	}
 
+	private void processCreateRes(Message m) {
+		serverId = new ServerId(m.getWriteId().getAcceptstamp(),
+				m.getWriteId().getServerId());
+		// TODO: Extract writeset from the message and execute it on this
+		// server.
+	}
+
 	class ReceiveThread extends Thread {
 		public void run() {
 			while (true) {
@@ -106,7 +126,13 @@ public class Server implements NetworkNodes {
 
 		private Message getNextMessage() {
 			try {
-				return queue.take();
+				Message m = queue.take();
+				// If an outgoing connection to this server is not available
+				// make a new connection
+				if (!nc.isOutgoingAvailable(m.getSrc())) {
+					restoreConnection(m.getSrc());
+				}
+				return m;
 			} catch (InterruptedException e) {
 				logger.severe("Interrupted Server: " + serverPid);
 			}
@@ -119,6 +145,7 @@ public class Server implements NetworkNodes {
 				processCreateReq(m);
 				break;
 			case CREATE_RES:
+				// TODO: Should remove this ?
 				processCreateRes(m);
 				break;
 			case RETIRE:
@@ -134,7 +161,7 @@ public class Server implements NetworkNodes {
 				processRead(m);
 				break;
 			case WRITE:
-				processWrite(m);
+				processWrite(m, false);
 				break;
 			case ANTI_ENTROPY_REQ:
 				processAntiEntropyReq(m);
@@ -148,11 +175,13 @@ public class Server implements NetworkNodes {
 		}
 
 		private void processCreateReq(Message m) {
-
-		}
-
-		private void processCreateRes(Message m) {
-
+			WriteId newServerId = processWrite(m, true);
+			Message createResp = new Message(serverPid, m.getSrc());
+			// TODO: Set the write set here 
+			// createResp.setCreateResContent(newServerId);
+			// TODO: Add this entry to version vector with the new timestamp
+			restoreConnection(m.getSrc());
+			nc.sendMsg(createResp);
 		}
 
 		private void processRetireReq(Message m) {
@@ -175,7 +204,7 @@ public class Server implements NetworkNodes {
 			nc.sendMsg(response);
 		}
 
-		private void processWrite(Message m) {
+		private WriteId processWrite(Message m, boolean isCreate) {
 			// TODO(klad) : Confirm if we need to take max with system clock ?
 			acceptstamp = acceptstamp + 1;
 			Operation op = m.getOp();
@@ -192,9 +221,12 @@ public class Server implements NetworkNodes {
 			// Update DB.
 			dataStore.execute(op);
 			// Send writeId back to client.
-			Message response = new Message(m.getDest(), m.getSrc());
-			response.setWriteResContent(op.getWriteId());
-			nc.sendMsg(response);
+			if (!isCreate) {
+				Message response = new Message(m.getDest(), m.getSrc());
+				response.setWriteResContent(op.getWriteId());
+				nc.sendMsg(response);
+			}
+			return op.getWriteId();
 		}
 
 		private void processAntiEntropyReq(Message m) {

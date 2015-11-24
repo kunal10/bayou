@@ -108,18 +108,22 @@ public class Message implements Serializable {
 		writeSet = unknownWrites;
 	}
 
+	// A specific type of write for creation. The only effect of this write
+	// should be updating the version vector.
 	public void setCreateReqContent() {
 		srcType = NodeType.SERVER;
 		destType = NodeType.SERVER;
 		msgType = MessageType.CREATE_REQ;
+		op = new Operation(OperationType.CREATE, TransactionType.WRITE, null,
+				null, null);
 	}
 
-	public void setCreateResContent(WriteId wId) {
+	public void setCreateResContent(WriteId wId, SortedSet<Operation> wset) {
 		srcType = NodeType.SERVER;
 		destType = NodeType.SERVER;
 		msgType = MessageType.CREATE_RES;
 		writeId = wId;
-		// TODO: Set writeset from the server as well
+		writeSet = wset;
 	}
 
 	public void setRetireContent(boolean isPrimaryServer) {
