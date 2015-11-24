@@ -1,6 +1,7 @@
 package ut.distcomp.bayou;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.SortedSet;
@@ -9,6 +10,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Logger;
 
 import ut.distcomp.bayou.Message.MessageType;
+import ut.distcomp.bayou.Operation.OperationType;
 import ut.distcomp.framework.Config;
 import ut.distcomp.framework.NetController;
 
@@ -55,8 +57,26 @@ public class Server implements NetworkNodes {
 	}
 
 	public List<String> PrintLog() {
-		// TODO:
+		List<Operation> l = writeLog.getLog();
+		List<String> printLog = new ArrayList<>();
+		for (Operation operation : l) {
+			OperationType opType = operation.getOpType();
+			if (opType == OperationType.PUT || opType == OperationType.DELETE) {
+				String songName = operation.getSong();
+				String url = operation.getUrl();
+				boolean isCommited = operation.getWriteId().isCommitted();
+				printLog.add(formatLog(opType, songName, url, isCommited));
+			}
+		}
 		return null;
+	}
+
+	private String formatLog(OperationType opType, String songName, String url,
+			boolean isCommited) {
+		String opvalue = songName + ((url != null) ? ("," + url) : "");
+		String stablebool = (isCommited) ? "TRUE" : "FALSE";
+		String s = opType.toString() + ":(" + opvalue + "):" + stablebool;
+		return s;
 	}
 
 	private Message getCreateResponse() {
