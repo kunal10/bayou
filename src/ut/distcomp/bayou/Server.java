@@ -51,8 +51,12 @@ public class Server implements NetworkNodes {
 			processCreateRes(createResp);
 			// TODO: Start Receive thread and anti entropy thread
 			connectToServers(availableServers);
-
 		}
+	}
+
+	public List<String> PrintLog() {
+		// TODO:
+		return null;
 	}
 
 	private Message getCreateResponse() {
@@ -177,7 +181,7 @@ public class Server implements NetworkNodes {
 		private void processCreateReq(Message m) {
 			WriteId newServerId = processWrite(m, true);
 			Message createResp = new Message(serverPid, m.getSrc());
-			// TODO: Set the write set here 
+			// TODO: Set the write set here
 			// createResp.setCreateResContent(newServerId);
 			// TODO: Add this entry to version vector with the new timestamp
 			restoreConnection(m.getSrc());

@@ -39,16 +39,16 @@ public class NetController {
 		outSockets = new HashMap<>();
 		listener = new ListenServer(config, inSockets, queue);
 		listener.start();
-		
+
 	}
 
 	public Config getConfig() {
 		return config;
 	}
-	
-	public boolean isOutgoingAvailable(int proc){
+
+	public boolean isOutgoingAvailable(int proc) {
 		OutgoingSock outSock = outSockets.get(proc);
-		if(outSock == null){
+		if (outSock == null) {
 			return false;
 		}
 		return true;
