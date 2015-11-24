@@ -213,7 +213,9 @@ public class Server implements NetworkNodes {
 		}
 
 		private void processStateReq(Message m) {
-
+			Message stateResp = new Message(serverPid, m.getSrc());
+			stateResp.setStateResContent(versionVector);
+			nc.sendMsg(stateResp);
 		}
 
 		private void processStateRes(Message m) {
