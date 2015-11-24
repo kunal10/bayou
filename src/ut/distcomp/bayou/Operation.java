@@ -1,6 +1,9 @@
 package ut.distcomp.bayou;
 
-public class Operation {
+import java.io.Serializable;
+
+public class Operation implements Serializable{
+	
 	public enum OperationType {
 		// TODO: Check whether this will cause a problem in any cases where we
 		// are checking for operation type.
@@ -68,4 +71,6 @@ public class Operation {
 	private String url;
 	// Present only if transactionType == WRITE
 	private WriteId writeId;
+	private static final long serialVersionUID = -1960600520502849058L;
+	
 }
