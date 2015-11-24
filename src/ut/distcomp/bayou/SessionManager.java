@@ -2,6 +2,8 @@ package ut.distcomp.bayou;
 
 import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
+import java.util.logging.Logger;
+
 import ut.distcomp.bayou.Message.NodeType;
 import ut.distcomp.bayou.Operation.OperationType;
 import ut.distcomp.framework.NetController;
@@ -15,9 +17,12 @@ public class SessionManager {
 		this.clientId = clientId;
 		this.serverProcId = serverProcId;
 		this.nc = nc;
+		this.logger = nc.getConfig().logger;
 		this.queue = queue;
 	}
 
+	// TODO(asvenk) : Don't you need to send a STATE_REQ to the server to whom
+	// you are sending the read/write.
 	public String ExecuteTransaction(OperationType op, String songName,
 			String url) {
 		HashMap<ServerId, Integer> serverVector = null;
@@ -38,8 +43,16 @@ public class SessionManager {
 			// Extract the result and the server vector
 			Message reply = getServerReply();
 			// TODO: Add check on message type
+			// Server will not send null msg !! It will send msg with url null..
+			// Think about this and make the appropriate change 
+			// on client/server side. Currently I am sending msg with null url.
 			if (reply != null) {
 				// TODO: Reset the read vector to max of read and server vector
+				// Should this be done only when url is null or always ??
+			} else {
+				logger.severe("Server: " + serverProcId
+						+ "returned null when guarantees were satisfied");
+				result = errorDep;
 			}
 		} else {
 			result = errorDep;
@@ -52,21 +65,20 @@ public class SessionManager {
 		try {
 			reply = queue.take();
 		} catch (InterruptedException e) {
-			nc.getConfig().logger.severe(
-					"Interrupted while waiting for a reply from server");
+			logger.severe("Interrupted while waiting for a reply from server");
 		}
 		return reply;
 	}
 
 	private void sendReadToServer(String songName) {
-		Message m = new Message(clientId, serverProcId, NodeType.CLIENT);
+		Message m = new Message(clientId, serverProcId);
 		m.setReadContent(songName);
 		nc.sendMsg(m);
 	}
 
 	private void sendWriteToServer(String songName, String url,
 			OperationType op) {
-		Message m = new Message(clientId, serverProcId, NodeType.CLIENT);
+		Message m = new Message(clientId, serverProcId);
 		m.setWriteContent(NodeType.CLIENT, op, songName, url, null);
 		nc.sendMsg(m);
 	}
@@ -125,6 +137,7 @@ public class SessionManager {
 	private int clientId;
 	private int serverProcId;
 	private NetController nc;
+	private Logger logger;
 	private BlockingQueue<Message> queue;
 
 	private static final String errorDep = "ERR_DEP";

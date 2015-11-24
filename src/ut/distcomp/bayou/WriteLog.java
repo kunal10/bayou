@@ -3,56 +3,83 @@ package ut.distcomp.bayou;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.SortedSet;
+import java.util.logging.Logger;
 
 public class WriteLog {
-	public WriteLog() {
+	public WriteLog(Logger logger) {
 		super();
 		this.log = new ArrayList<>();
+		this.logger = logger;
 	}
 
 	// Iterates over the log and returns 1st index i st log[i] > writeId
-	public int findInsertionPoint(int startIndex, WriteId writeId) {
+	public int findInsertionPoint(int startIndex, Operation op) {
 		int index = startIndex;
+		WriteId writeId = op.getWriteId();
 		while (index < log.size()) {
-			int result = writeId.compareTo(log.get(index));
+			int result = writeId.compareTo(log.get(index).getWriteId());
 			if (result == WriteId.SMALLER) {
 				return index;
 			} else if (index == WriteId.EQUAL) {
-				// TODO(klad) : Add log severe.
+				logger.severe(
+						"Op already present in WriteLog: " + op.toString());
 			}
 			index++;
 		}
 		return index;
 	}
 
-	public void append(WriteId wId) {
-		log.add(wId);
-	}
-
-	// NOTE : This method assumes that writeSet does not contain any writeId
-	// which is present in log.
-	// TODO(klad) : Revisit this later and add a check if above condition may
-	// not hold.
-	public void insert(SortedSet<WriteId> writeSet) {
-		Iterator<WriteId> it = writeSet.iterator();
+	// NOTE : We need to check 2 things here:
+	// 1. If a writeId is already present then it should not be added again.
+	// 2. If a writeSet contains a commited writeId is present in writeLog in 
+	// tentative state then new committed writeId is inserted in correct slot
+	// and old one retained as we need to roll it back later. When we roll 
+	// forward from insertion point we need to ensure that tentaive writes for
+	// which there is a committed write are removed from writeLog.
+	// WriteLog will be in an inconsistent state till then and should not be 
+	// used anywhere.
+	
+	// TODO(klad) : Fix above thing.
+	public void insert(SortedSet<Operation> writeSet) {
+		Iterator<Operation> it = writeSet.iterator();
 		int index = 0;
 		while (it.hasNext()) {
-			WriteId writeId = it.next();
-			index = findInsertionPoint(index, writeId);
-			log.add(index, writeId);
+			Operation op = it.next();
+			index = findInsertionPoint(index, op);
+			WriteId writeId = op.getWriteId();
+			// If updating status of write from tentative to committed then
+			// remove old entry(if present) in write log.
+			if (writeId.isCommitted()) {
+				removeOldWrite(writeId);
+			}
+			log.add(index, op);
 		}
 	}
-	
-	public WriteId get(int index) {
+
+	public Operation get(int index) {
 		if (index < log.size()) {
 			return log.get(index);
 		}
 		return null;
 	}
-	
-	public ArrayList<WriteId> getLog() {
+
+	public ArrayList<Operation> getLog() {
 		return log;
 	}
+	
+	private void removeOldWrite(WriteId writeId) {
+		int oldIndex = -1;
+		for (int i = 0 ; i < log.size(); i++) {
+			if (writeId.isEquivalent(log.get(i).getWriteId())) {
+				oldIndex = i;
+				break;
+			}
+		}
+		if (oldIndex != -1) {
+			log.remove(oldIndex);
+		}
+	}
 
-	private ArrayList<WriteId> log;
+	private ArrayList<Operation> log;
+	private Logger logger;
 }

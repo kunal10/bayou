@@ -8,13 +8,38 @@ public class DataStore {
 		this.playlist = new HashMap<>();
 	}
 	
-	public void delete(String song) {
+	public void execute(Operation op) {
+		switch(op.getOpType()) {
+		case DELETE:
+			delete(op.getSong());
+			break;
+		case PUT:
+			put(op.getSong(), op.getUrl());
+			break;
+		default:
+			break;
+		}
+	}
+	
+	public void undo(Operation op) {
+		// TODO(klad)
+	}
+	
+	public void rollbackTo(int index) {
+		// TODO(klad)
+	}
+	
+	public void rollforwardFrom(int index, WriteLog writeLog) {
+		// TODO(klad)
+	}
+	
+	private void delete(String song) {
 		if (playlist.containsKey(song)) {
 			playlist.remove(song);
 		}
 	}
 	
-	public void put(String song, String url) {
+	private void put(String song, String url) {
 		playlist.put(song, url);
 	}
 	
