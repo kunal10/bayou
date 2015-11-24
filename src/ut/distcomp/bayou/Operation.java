@@ -2,7 +2,9 @@ package ut.distcomp.bayou;
 
 public class Operation {
 	public enum OperationType {
-		GET, PUT, DELETE,
+		// TODO: Check whether this will cause a problem in any cases where we
+		// are checking for operation type.
+		GET, PUT, DELETE, CREATE, RETIRE,
 	}
 
 	public enum TransactionType {
@@ -53,7 +55,7 @@ public class Operation {
 	public WriteId getWriteId() {
 		return writeId;
 	}
-	
+
 	public void setWriteId(WriteId writeId) {
 		this.writeId = writeId;
 	}

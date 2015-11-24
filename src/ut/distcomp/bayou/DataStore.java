@@ -7,9 +7,9 @@ public class DataStore {
 		super();
 		this.playlist = new HashMap<>();
 	}
-	
+
 	public void execute(Operation op) {
-		switch(op.getOpType()) {
+		switch (op.getOpType()) {
 		case DELETE:
 			delete(op.getSong());
 			break;
@@ -20,51 +20,52 @@ public class DataStore {
 			break;
 		}
 	}
-	
+
 	public void undo(Operation op) {
 		// TODO(klad)
 	}
-	
+
 	public void rollbackTo(int index) {
 		// TODO(klad)
 	}
-	
+
 	public void rollforwardFrom(int index, WriteLog writeLog) {
 		// TODO(klad)
 	}
-	
+
 	private void delete(String song) {
 		if (playlist.containsKey(song)) {
 			playlist.remove(song);
 		}
 	}
-	
+
 	private void put(String song, String url) {
 		playlist.put(song, url);
 	}
-	
-	// NOTE : Returns null if song is not present.
+
+	// NOTE : Returns err_key if song is not present.
 	public String get(String song) {
 		if (playlist.containsKey(song)) {
 			return playlist.get(song);
+		} else {
+			return err_key;
 		}
-		return null;
 	}
-	
+
 	@Override
 	public String toString() {
 		StringBuilder result = new StringBuilder();
 		result.append("\nPlaylist : ");
 		for (String song : playlist.keySet()) {
-  			result.append(song + playlist.get(song) + "\n");
+			result.append(song + playlist.get(song) + "\n");
 		}
 		return result.toString();
 	}
-
 
 	public HashMap<String, String> getPlaylist() {
 		return playlist;
 	}
 
-	private HashMap<String,String> playlist;
+	private HashMap<String, String> playlist;
+	private static final String err_key = "ERR_KEY";
 }

@@ -1,8 +1,8 @@
 package ut.distcomp.bayou;
 
 import java.io.IOException;
-import java.util.Formatter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -29,10 +29,34 @@ public class Server implements NetworkNodes {
 		this.pause = false;
 	}
 
-	public void joinServer() {
-		// TODO(asvenk) :
-		// Make nc connections to all other existing servers
-		// Run creation algo and get a server ID
+	public void joinServer(List<Integer> availableServers) {
+		if (availableServers.size() == 0) {
+			// This is the first server to join the system. Set your own server
+			// id to null. And write the first entry into log.
+		} else {
+			// Take the first available server and initiate connection with it.
+			int firstSid = availableServers.get(0);
+			restoreConnection(firstSid);
+			Message m = new Message(serverPid, firstSid);
+			m.setCreateReqContent();
+			Message createResp = getCreateResponse();
+			serverId = new ServerId(createResp.getWriteId().getAcceptstamp(),
+					createResp.getWriteId().getServerId());
+			// TODO: Extract writeset from the message and execute it on this
+			// server.
+			connectToServers(availableServers);
+			// TODO: Start Receive thread and anti entropy thread
+		}
+	}
+
+	private Message getCreateResponse() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	private void connectToServers(List<Integer> availableServers) {
+		// TODO Auto-generated method stub
+		
 	}
 
 	public void retireServer() {
@@ -199,12 +223,10 @@ public class Server implements NetworkNodes {
 	private void antiEntropy(Message m) {
 		int rCsn = m.getCsn();
 		if (rCsn < csn) {
-//			while() {
-//			}
+			// while() {
+			// }
 		}
 	}
-
-
 
 	private final int serverPid;
 	private final NetController nc;

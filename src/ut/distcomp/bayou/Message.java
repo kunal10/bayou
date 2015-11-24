@@ -119,6 +119,7 @@ public class Message implements Serializable {
 		destType = NodeType.SERVER;
 		msgType = MessageType.CREATE_RES;
 		writeId = wId;
+		// TODO: Set writeset from the server as well
 	}
 
 	public void setRetireContent(boolean isPrimaryServer) {
