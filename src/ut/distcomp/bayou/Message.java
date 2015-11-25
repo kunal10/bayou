@@ -109,21 +109,20 @@ public class Message implements Serializable {
 	}
 
 	// A specific type of write for creation. The only effect of this write
-	// should be updating the version vector.
-	public void setCreateReqContent() {
+	// should be updating the version vector.The song field has the proc ID.
+	public void setCreateReqContent(int procId) {
 		srcType = NodeType.SERVER;
 		destType = NodeType.SERVER;
 		msgType = MessageType.CREATE_REQ;
-		op = new Operation(OperationType.CREATE, TransactionType.WRITE, null,
-				null, null);
+		op = new Operation(OperationType.CREATE, TransactionType.WRITE,
+				procId + "", null, null);
 	}
 
-	public void setCreateResContent(WriteId wId, SortedSet<Operation> wset) {
+	public void setCreateResContent(WriteId wId) {
 		srcType = NodeType.SERVER;
 		destType = NodeType.SERVER;
 		msgType = MessageType.CREATE_RES;
 		writeId = wId;
-		writeSet = wset;
 	}
 
 	public void setRetireContent(boolean isPrimaryServer) {

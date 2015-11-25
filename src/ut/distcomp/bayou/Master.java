@@ -127,6 +127,7 @@ public class Master {
 				break;
 			}
 		}
+		System.exit(0);
 	}
 
 	private static void printLog(int serverId) {

@@ -3,6 +3,7 @@ package ut.distcomp.bayou;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -18,7 +19,8 @@ import ut.distcomp.framework.NetController;
 // timestamp. Then any server which receives a creation write during anti entropy 
 // doesn't need any exclusive logic to be executed
 // TODO(asvenk): setting up new connections when you get some message from a 
-// server who is not there in your outgoing connections.
+// server who is not there in your outgoing connections. 
+// Should you exclude this when you receive a create message ?
 
 public class Server implements NetworkNodes {
 	public Server(int serverPid) {
@@ -36,24 +38,27 @@ public class Server implements NetworkNodes {
 		this.acceptstamp = 0;
 		this.versionVector = new HashMap<>();
 		this.pause = false;
+		this.connectServers = new ArrayList<Integer>();
 	}
 
 	public void JoinServer(List<Integer> availableServers) {
 		if (availableServers.size() == 0) {
-			// TODO: This is the first server to join the system. Set your own
-			// server id to null. And write the first entry into log.
+			// This is the first server to join the system. Set your own
+			// server id to null and set yourself as primary.
 			serverId = new ServerId(0, null);
+			isPrimary = true;
+			// TODO: Write the first entry into log.
 		} else {
 			// Take the first available server and initiate connection with it.
 			int firstSid = availableServers.get(0);
 			restoreConnection(firstSid);
 			Message m = new Message(serverPid, firstSid);
-			m.setCreateReqContent();
+			m.setCreateReqContent(serverPid);
 			Message createResp = getCreateResponse();
 			processCreateRes(createResp);
-			// TODO: Start Receive thread and anti entropy thread
-			connectToServers(availableServers);
 		}
+		startThreads();
+		connectToServers(availableServers);
 	}
 
 	public List<String> PrintLog() {
@@ -69,6 +74,22 @@ public class Server implements NetworkNodes {
 			}
 		}
 		return null;
+	}
+
+	private void startThreads() {
+		receiveThread = new ReceiveThread();
+		atThread = new AntiEntropyThread();
+		receiveThread.start();
+		atThread.start();
+	}
+
+	private void stopThreads() {
+		if (receiveThread != null) {
+			receiveThread.stop();
+		}
+		if (atThread != null) {
+			atThread.stop();
+		}
 	}
 
 	private String formatLog(OperationType opType, String songName, String url,
@@ -92,18 +113,40 @@ public class Server implements NetworkNodes {
 
 	private void connectToServers(List<Integer> availableServers) {
 		for (int i = 1; i < availableServers.size(); i++) {
-			restoreConnection(availableServers.get(i));
+			int sid = availableServers.get(i);
+			restoreConnection(sid);
+			connectServers.add(sid);
 		}
 	}
 
 	public void RetireServer() {
 		// TODO :
 		// Run retirement protocol
+		// Write a retire log to your own write log.
+		
+		// Shutdown receive and anti entropy threads.
+		stopThreads();
+		queue.clear();
+		Message stateResponse = getStateResponse();
+		// TODO: Send anti entropy response to someone.
+		Message m = new Message(serverPid, connectServers.get(0));
+		// m.setAntiEntropyResContent(stateResponse.getVersionVector());
+		// Send retire message to that server.
+		Message retire = new Message(serverPid, connectServers.get(0));
+		retire.setRetireContent(isPrimary);
+		nc.shutdown();
+	}
+	
+
+	private Message getStateResponse() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	@Override
 	public void breakConnection(int i) {
 		nc.breakOutgoingConnection(i);
+		connectServers.remove(i);
 	}
 
 	@Override
@@ -123,10 +166,10 @@ public class Server implements NetworkNodes {
 	}
 
 	private void processCreateRes(Message m) {
+		// Set both the server ID and the accept stamp.
 		serverId = new ServerId(m.getWriteId().getAcceptstamp(),
 				m.getWriteId().getServerId());
-		// TODO: Extract writeset from the message and execute it on this
-		// server.
+		acceptstamp = m.getWriteId().getAcceptstamp();
 	}
 
 	class ReceiveThread extends Thread {
@@ -169,7 +212,6 @@ public class Server implements NetworkNodes {
 				processCreateReq(m);
 				break;
 			case CREATE_RES:
-				// TODO: Should remove this ?
 				processCreateRes(m);
 				break;
 			case RETIRE:
@@ -201,15 +243,17 @@ public class Server implements NetworkNodes {
 		private void processCreateReq(Message m) {
 			WriteId newServerId = processWrite(m, true);
 			Message createResp = new Message(serverPid, m.getSrc());
-			// TODO: Set the write set here
-			// createResp.setCreateResContent(newServerId);
-			// TODO: Add this entry to version vector with the new timestamp
+			createResp.setCreateResContent(newServerId);
+			versionVector.put(new ServerId(newServerId.getAcceptstamp(),
+					newServerId.getServerId()), newServerId.getAcceptstamp());
 			restoreConnection(m.getSrc());
 			nc.sendMsg(createResp);
 		}
 
 		private void processRetireReq(Message m) {
-
+			if (m.isPrimary()) {
+				isPrimary = true;
+			}
 		}
 
 		private void processStateReq(Message m) {
@@ -230,6 +274,7 @@ public class Server implements NetworkNodes {
 			nc.sendMsg(response);
 		}
 
+		// TODO: remove boolean flag and use the write to own log interface.
 		private WriteId processWrite(Message m, boolean isCreate) {
 			// TODO(klad) : Confirm if we need to take max with system clock ?
 			acceptstamp = acceptstamp + 1;
@@ -270,11 +315,18 @@ public class Server implements NetworkNodes {
 			int insertionPoint = writeLog.findInsertionPoint(0, op);
 			dataStore.rollbackTo(insertionPoint);
 			writeLog.insert(writeSet);
+			// TODO:
 			dataStore.rollforwardFrom(insertionPoint, writeLog);
 			// Update acceptstamp
 			op = writeSet.last();
 			acceptstamp = Math.max(acceptstamp,
 					op.getWriteId().getAcceptstamp());
+		}
+	}
+
+	class AntiEntropyThread extends Thread {
+		public void run() {
+
 		}
 	}
 
@@ -291,9 +343,11 @@ public class Server implements NetworkNodes {
 	private final Logger logger;
 	private final LinkedBlockingQueue<Message> queue;
 	private final DataStore dataStore;
+	// TODO: Make sure your own ID is not added into this set.
+	private final List<Integer> connectServers;
 	private WriteLog writeLog;
 	private ServerId serverId;
-	// TODO: Where should you set it for the first time
+	// Set for first time when the first server is added to the system.
 	private boolean isPrimary;
 	// TODO(klad) : Do we need to make these synchronized since they might be
 	// accessed from multiple threads ??
@@ -301,4 +355,6 @@ public class Server implements NetworkNodes {
 	private int acceptstamp;
 	private HashMap<ServerId, Integer> versionVector;
 	private boolean pause;
+	private ReceiveThread receiveThread;
+	private AntiEntropyThread atThread;
 }
