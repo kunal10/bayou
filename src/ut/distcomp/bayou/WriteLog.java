@@ -3,6 +3,7 @@ package ut.distcomp.bayou;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.logging.Logger;
 
 public class WriteLog {
@@ -28,18 +29,13 @@ public class WriteLog {
 		}
 		return index;
 	}
-
-	// NOTE : We need to check 2 things here:
-	// 1. If a writeId is already present then it should not be added again.
-	// 2. If a writeSet contains a commited writeId is present in writeLog in 
-	// tentative state then new committed writeId is inserted in correct slot
-	// and old one retained as we need to roll it back later. When we roll 
-	// forward from insertion point we need to ensure that tentaive writes for
-	// which there is a committed write are removed from writeLog.
-	// WriteLog will be in an inconsistent state till then and should not be 
-	// used anywhere.
 	
-	// TODO(klad) : Fix above thing.
+	public void insert(Operation op) {
+		SortedSet<Operation> writeSet = new TreeSet<>();
+		writeSet.add(op);
+		insert(writeSet);
+	}
+
 	public void insert(SortedSet<Operation> writeSet) {
 		Iterator<Operation> it = writeSet.iterator();
 		int index = 0;
@@ -47,12 +43,20 @@ public class WriteLog {
 			Operation op = it.next();
 			index = findInsertionPoint(index, op);
 			WriteId writeId = op.getWriteId();
-			// If updating status of write from tentative to committed then
-			// remove old entry(if present) in write log.
-			if (writeId.isCommitted()) {
-				removeOldWrite(writeId);
+			int oldIndex = indexOf(writeId);
+			if (oldIndex == -1) {
+				log.add(index, op);
+			} else {
+				WriteId oldWriteId = log.get(oldIndex).getWriteId();
+				// Ignore the write if its already present
+				if (writeId.equals(oldWriteId)) {
+					continue;
+				}
+				// Old write is tentative, new write is committed.
+				// Remove old and add new at above determined position.
+				log.remove(oldIndex);
+				log.add(index, op);
 			}
-			log.add(index, op);
 		}
 	}
 
@@ -67,19 +71,17 @@ public class WriteLog {
 		return log;
 	}
 	
-	private void removeOldWrite(WriteId writeId) {
-		int oldIndex = -1;
+	private int indexOf(WriteId writeId) {
+		int index = -1;
 		for (int i = 0 ; i < log.size(); i++) {
 			if (writeId.isEquivalent(log.get(i).getWriteId())) {
-				oldIndex = i;
+				index = i;
 				break;
 			}
 		}
-		if (oldIndex != -1) {
-			log.remove(oldIndex);
-		}
+		return index;
 	}
-
+	
 	private ArrayList<Operation> log;
 	private Logger logger;
 }

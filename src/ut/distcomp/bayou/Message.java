@@ -110,6 +110,7 @@ public class Message implements Serializable {
 
 	// A specific type of write for creation. The only effect of this write
 	// should be updating the version vector.The song field has the proc ID.
+	// DB is not affected by this.
 	public void setCreateReqContent(int procId) {
 		srcType = NodeType.SERVER;
 		destType = NodeType.SERVER;

@@ -5,19 +5,19 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Logger;
 
 import ut.distcomp.bayou.Message.MessageType;
+import ut.distcomp.bayou.Message.NodeType;
 import ut.distcomp.bayou.Operation.OperationType;
+import ut.distcomp.bayou.Operation.TransactionType;
 import ut.distcomp.framework.Config;
 import ut.distcomp.framework.NetController;
 
-// TODO(klad): Are you updating the version vector on receiving writes with their 
-// timestamp. Then any server which receives a creation write during anti entropy 
-// doesn't need any exclusive logic to be executed
 // TODO(asvenk): setting up new connections when you get some message from a 
 // server who is not there in your outgoing connections. 
 // Should you exclude this when you receive a create message ?
@@ -35,19 +35,30 @@ public class Server implements NetworkNodes {
 		this.serverId = null;
 		this.isPrimary = false;
 		this.csn = -1;
-		this.acceptstamp = 0;
+		this.acceptstamp = -1;
 		this.versionVector = new HashMap<>();
 		this.pause = false;
-		this.connectServers = new ArrayList<Integer>();
+		this.availableServers = new ArrayList<Integer>();
 	}
 
 	public void JoinServer(List<Integer> availableServers) {
 		if (availableServers.size() == 0) {
 			// This is the first server to join the system. Set your own
 			// server id to null and set yourself as primary.
-			serverId = new ServerId(0, null);
 			isPrimary = true;
-			// TODO: Write the first entry into log.
+			// TODO(asvenk) : If server can send itself a msg at this point,
+			// instead of duplicating the code from processCreateReq, we can
+			// send a CREATE req from server to itself. It will handle all of
+			// the things below.
+			serverId = new ServerId(0, null);
+			acceptstamp = 0;
+			WriteId writeId = new WriteId(WriteId.POSITIVE_INFINITY,
+					acceptstamp, serverId);
+			Operation op = new Operation(OperationType.CREATE,
+					TransactionType.WRITE, null, null, writeId);
+			writeLog.insert(op);
+			updateState(op);
+			dataStore.execute(op);
 		} else {
 			// Take the first available server and initiate connection with it.
 			int firstSid = availableServers.get(0);
@@ -56,6 +67,9 @@ public class Server implements NetworkNodes {
 			m.setCreateReqContent(serverPid);
 			Message createResp = getCreateResponse();
 			processCreateRes(createResp);
+			// TODO(asvenk): 1. Start Receive thread and anti entropy thread
+			// 2. Should we connect new server to all the servers ?? Isnt the
+			// network topology determined by input ??
 		}
 		startThreads();
 		connectToServers(availableServers);
@@ -102,6 +116,11 @@ public class Server implements NetworkNodes {
 
 	private Message getCreateResponse() {
 		Message m = null;
+		// TODO(asvenk) : Can you confirm if we need a do-while here ?
+		// Can sending server send ANTI_ENTROPY before CREATE_RES ?
+		// I think it will depend on when will it establish connection to this
+		// server and when it gets added to set of available servers used in
+		// anti-entropy thread.
 		do {
 			try {
 				m = queue.take();
@@ -115,7 +134,7 @@ public class Server implements NetworkNodes {
 		for (int i = 1; i < availableServers.size(); i++) {
 			int sid = availableServers.get(i);
 			restoreConnection(sid);
-			connectServers.add(sid);
+			availableServers.add(sid);
 		}
 	}
 
@@ -129,10 +148,10 @@ public class Server implements NetworkNodes {
 		queue.clear();
 		Message stateResponse = getStateResponse();
 		// TODO: Send anti entropy response to someone.
-		Message m = new Message(serverPid, connectServers.get(0));
+		Message m = new Message(serverPid, availableServers.get(0));
 		// m.setAntiEntropyResContent(stateResponse.getVersionVector());
 		// Send retire message to that server.
-		Message retire = new Message(serverPid, connectServers.get(0));
+		Message retire = new Message(serverPid, availableServers.get(0));
 		retire.setRetireContent(isPrimary);
 		nc.shutdown();
 	}
@@ -146,7 +165,7 @@ public class Server implements NetworkNodes {
 	@Override
 	public void breakConnection(int i) {
 		nc.breakOutgoingConnection(i);
-		connectServers.remove(i);
+		availableServers.remove(i);
 	}
 
 	@Override
@@ -165,11 +184,21 @@ public class Server implements NetworkNodes {
 		pause = false;
 	}
 
-	private void processCreateRes(Message m) {
-		// Set both the server ID and the accept stamp.
-		serverId = new ServerId(m.getWriteId().getAcceptstamp(),
-				m.getWriteId().getServerId());
-		acceptstamp = m.getWriteId().getAcceptstamp();
+	class AntiEntropyThread extends Thread {
+		public void run() {
+			// TODO(asvenk): How to figure out set of availableServers here ?
+			// Is this possible from NC or do we need to maintain this set in
+			// each server on basis of restoreConnection calls.
+			for (int dest : availableServers) {
+				Message request = new Message(serverPid, dest);
+				request.setAntiEntropyReqContent(versionVector, csn);
+				nc.sendMsg(request);
+				try {
+					Thread.sleep(100);
+				} catch (InterruptedException e) {
+				}
+			}
+		}
 	}
 
 	class ReceiveThread extends Thread {
@@ -195,7 +224,9 @@ public class Server implements NetworkNodes {
 			try {
 				Message m = queue.take();
 				// If an outgoing connection to this server is not available
-				// make a new connection
+				// make a new connection.
+				// TODO(asvenk) : Why do we need this ? It is possible to have 
+				// networks in which i->j but not j->i !!
 				if (!nc.isOutgoingAvailable(m.getSrc())) {
 					restoreConnection(m.getSrc());
 				}
@@ -211,9 +242,6 @@ public class Server implements NetworkNodes {
 			case CREATE_REQ:
 				processCreateReq(m);
 				break;
-			case CREATE_RES:
-				processCreateRes(m);
-				break;
 			case RETIRE:
 				processRetireReq(m);
 				break;
@@ -227,7 +255,7 @@ public class Server implements NetworkNodes {
 				processRead(m);
 				break;
 			case WRITE:
-				processWrite(m, false);
+				processWrite(m);
 				break;
 			case ANTI_ENTROPY_REQ:
 				processAntiEntropyReq(m);
@@ -241,13 +269,13 @@ public class Server implements NetworkNodes {
 		}
 
 		private void processCreateReq(Message m) {
-			WriteId newServerId = processWrite(m, true);
+			WriteId writeId = processWrite(m);
+			SortedSet<Operation> writeSet = computeWriteSet(m);
 			Message createResp = new Message(serverPid, m.getSrc());
-			createResp.setCreateResContent(newServerId);
-			versionVector.put(new ServerId(newServerId.getAcceptstamp(),
-					newServerId.getServerId()), newServerId.getAcceptstamp());
+			createResp.setCreateResContent(writeId);
 			restoreConnection(m.getSrc());
 			nc.sendMsg(createResp);
+			// TODO: Check whether version vector is updated here
 		}
 
 		private void processRetireReq(Message m) {
@@ -274,8 +302,10 @@ public class Server implements NetworkNodes {
 			nc.sendMsg(response);
 		}
 
-		// TODO: remove boolean flag and use the write to own log interface.
-		private WriteId processWrite(Message m, boolean isCreate) {
+		// NOTE : All this method is only called for write requests from clients
+		// or create/retire writes by other servers. Writes sent as part of
+		// anti-entropy are handled in processAntiEntropyRes.
+		private WriteId processWrite(Message m) {
 			// TODO(klad) : Confirm if we need to take max with system clock ?
 			acceptstamp = acceptstamp + 1;
 			Operation op = m.getOp();
@@ -285,56 +315,108 @@ public class Server implements NetworkNodes {
 				commitSeqNo = csn;
 			}
 			op.setWriteId(new WriteId(commitSeqNo, acceptstamp, serverId));
-			SortedSet<Operation> writeSet = new TreeSet<>();
-			writeSet.add(op);
 			// Add write to write log.
-			writeLog.insert(writeSet);
+			writeLog.insert(op);
+			// Update version vector and csn.
+			updateState(op);
 			// Update DB.
 			dataStore.execute(op);
 			// Send writeId back to client.
-			if (!isCreate) {
+			if (m.getSrcType() == NodeType.CLIENT) {
 				Message response = new Message(m.getDest(), m.getSrc());
 				response.setWriteResContent(op.getWriteId());
 				nc.sendMsg(response);
 			}
 			return op.getWriteId();
 		}
+		
+		// Assumes that m has csn and versionVector values set appropriately.
+		// NOTE : If m is a CREATE_REQ then rCsn is -1 and rVV is null.
+		private SortedSet<Operation> computeWriteSet(Message m) {
+			int rCsn = m.getCsn();
+			HashMap<ServerId, Integer> rVV = m.getVersionVector();
+			ArrayList<Operation> log = writeLog.getLog();
+			SortedSet<Operation> writeSet = new TreeSet<>();
+			// Add all committed writes unknown to receiver.
+			if (rCsn < csn) {
+				for (int i = rCsn + 1; i <= csn; i++) {
+					writeSet.add(log.get(i));
+				}
+			}
+			// Add all tentative writes unknown to receiver.
+			for (int i = csn + 1; i < log.size(); i++) {
+				Operation op = log.get(i);
+				WriteId wId = op.getWriteId();
+				// Receiver does not know about this server.
+				if (rVV == null || !rVV.containsKey(wId.getServerId())) {
+					writeSet.add(op);
+				} else if (rVV.get(wId.getServerId()) < wId.getAcceptstamp()) {
+					writeSet.add(op);
+				}
+			}
+			return writeSet;
+		}
 
 		private void processAntiEntropyReq(Message m) {
-
-		}
-
-		private void processAntiEntropyRes(Message m) {
-			SortedSet<Operation> writeSet = m.getWriteSet();
-			if (writeSet == null) {
-				return;
-			}
-			// Remove write which might already be present.
-			// Find insertion point of 1st write not already present in writeLog
-			Operation op = writeSet.first();
-			int insertionPoint = writeLog.findInsertionPoint(0, op);
-			dataStore.rollbackTo(insertionPoint);
-			writeLog.insert(writeSet);
-			// TODO:
-			dataStore.rollforwardFrom(insertionPoint, writeLog);
-			// Update acceptstamp
-			op = writeSet.last();
-			acceptstamp = Math.max(acceptstamp,
-					op.getWriteId().getAcceptstamp());
+			Message response = new Message(m.getDest(), m.getSrc());
+			response.setAntiEntropyResContent(computeWriteSet(m));
+			nc.sendMsg(response);
 		}
 	}
 
-	class AntiEntropyThread extends Thread {
-		public void run() {
-
-		}
+	private void processCreateRes(Message m) {
+		WriteId writeId = m.getWriteId();
+		serverId = new ServerId(writeId.getAcceptstamp(),
+				writeId.getServerId());
+		acceptstamp = writeId.getAcceptstamp();
+		versionVector.put(serverId, acceptstamp);
+		// For create response, handling of writeSet is same as anti-entropy
+		// response message. Although we can optimize by avoiding some steps
+		// like rollback in this case this is simpler.
+		processAntiEntropyRes(m);
 	}
 
-	private void antiEntropy(Message m) {
-		int rCsn = m.getCsn();
-		if (rCsn < csn) {
-			// while() {
-			// }
+	private void processAntiEntropyRes(Message m) {
+		SortedSet<Operation> writeSet = m.getWriteSet();
+		if (writeSet == null) {
+			return;
+		}
+		// Remove write which might already be present.
+		// Find insertion point of 1st write not already present in writeLog
+		Operation op = writeSet.first();
+		int insertionPoint = writeLog.findInsertionPoint(0, op);
+		// Rollback to insertion point.
+		dataStore.rollbackTo(insertionPoint, writeLog);
+		// Insert unknown writes.
+		writeLog.insert(writeSet);
+		// Update version vector and csn.
+		updateState(writeSet);
+		// Execute all operations from insertion point till end of the log.
+		dataStore.rollforwardFrom(insertionPoint, writeLog);
+		op = writeSet.last();
+		acceptstamp = Math.max(acceptstamp, op.getWriteId().getAcceptstamp());
+	}
+
+
+	private void updateState(Operation op) {
+		WriteId writeId = op.getWriteId();
+		ServerId sId = writeId.getServerId();
+		// Update csn.
+		if (writeId.getCsn() > csn) {
+			csn = writeId.getCsn();
+		}
+		// Update version vector.
+		int as = writeId.getAcceptstamp();
+		if (versionVector.containsKey(sId)) {
+			as = Math.max(as, versionVector.get(sId));
+		}
+		versionVector.put(sId, as);
+	}
+
+
+	private void updateState(SortedSet<Operation> writeSet) {
+		for (Operation op : writeSet) {
+			updateState(op);
 		}
 	}
 
@@ -344,10 +426,9 @@ public class Server implements NetworkNodes {
 	private final LinkedBlockingQueue<Message> queue;
 	private final DataStore dataStore;
 	// TODO: Make sure your own ID is not added into this set.
-	private final List<Integer> connectServers;
+	private final List<Integer> availableServers;
 	private WriteLog writeLog;
 	private ServerId serverId;
-	// Set for first time when the first server is added to the system.
 	private boolean isPrimary;
 	// TODO(klad) : Do we need to make these synchronized since they might be
 	// accessed from multiple threads ??
