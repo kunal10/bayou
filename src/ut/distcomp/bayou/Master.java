@@ -199,6 +199,7 @@ public class Master {
 
 	public static void joinServer(int serverId) {
 		Server s = new Server(serverId);
+		// TODO(asvenk) : Why are you converting from set to list ??
 		s.JoinServer(getList(servers.keySet()));
 		servers.put(serverId, s);
 	}

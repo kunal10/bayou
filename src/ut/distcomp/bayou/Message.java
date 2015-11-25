@@ -109,7 +109,8 @@ public class Message implements Serializable {
 	}
 
 	// A specific type of write for creation. The only effect of this write
-	// should be updating the version vector.
+	// should be updating the version vector and entry in write log. DB is not
+	// affected by this.
 	public void setCreateReqContent() {
 		srcType = NodeType.SERVER;
 		destType = NodeType.SERVER;
@@ -118,12 +119,12 @@ public class Message implements Serializable {
 				null, null);
 	}
 
-	public void setCreateResContent(WriteId wId, SortedSet<Operation> wset) {
+	public void setCreateResContent(WriteId wId, SortedSet<Operation> wSet) {
 		srcType = NodeType.SERVER;
 		destType = NodeType.SERVER;
 		msgType = MessageType.CREATE_RES;
 		writeId = wId;
-		writeSet = wset;
+		writeSet = wSet;
 	}
 
 	public void setRetireContent(boolean isPrimaryServer) {
