@@ -10,7 +10,6 @@ import ut.distcomp.framework.NetController;
 
 public class SessionManager {
 
-	// TODO: Make sure whether the communication on client synchronous.
 	public SessionManager(int clientId, int serverProcId, NetController nc,
 			BlockingQueue<Message> queue) {
 		readVector = new HashMap<>();

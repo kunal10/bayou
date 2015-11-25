@@ -5,8 +5,6 @@ import java.io.Serializable;
 public class Operation implements Serializable{
 	
 	public enum OperationType {
-		// TODO: Check whether this will cause a problem in any cases where we
-		// are checking for operation type.
 		GET, PUT, DELETE, CREATE, RETIRE,
 	}
 

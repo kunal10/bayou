@@ -2,7 +2,6 @@ package ut.distcomp.bayou;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
@@ -26,10 +25,10 @@ public class Master {
 				break;
 			case "retireServer":
 				serverId = Integer.parseInt(inputLine[1]);
+				retireServer(serverId);
 				/*
-				 * TODO: Retire the server with the id specified. This should
-				 * block until the server can tell another server of its
-				 * retirement
+				 * Retire the server with the id specified. This should block
+				 * until the server can tell another server of its retirement
 				 */
 				break;
 			case "joinClient":
@@ -127,11 +126,17 @@ public class Master {
 				break;
 			}
 		}
+		scan.close();
 		System.exit(0);
 	}
 
+	private static void retireServer(int serverId) {
+		Server s = (Server) servers.get(serverId);
+		s.RetireServer();
+	}
+
 	private static void printLog(int serverId) {
-		Server s = new Server(serverId);
+		Server s = (Server) servers.get(serverId);
 		List<String> l = s.PrintLog();
 		for (String string : l) {
 			System.out.println(string);
@@ -200,8 +205,7 @@ public class Master {
 
 	public static void joinServer(int serverId) {
 		Server s = new Server(serverId);
-		// TODO(asvenk) : Why are you converting from set to list ??
-		s.JoinServer(getList(servers.keySet()));
+		s.JoinServer(servers.keySet());
 		servers.put(serverId, s);
 	}
 
@@ -210,14 +214,6 @@ public class Master {
 		clients.put(clientId, c);
 		c.joinClient(serverId);
 		servers.get(serverId).restoreConnection(clientId);
-	}
-
-	public static List<Integer> getList(Set<Integer> set) {
-		List<Integer> l = new ArrayList<>();
-		for (Integer i : set) {
-			l.add(i);
-		}
-		return l;
 	}
 
 	static HashMap<Integer, NetworkNodes> servers = new HashMap<>();
