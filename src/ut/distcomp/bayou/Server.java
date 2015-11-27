@@ -137,7 +137,7 @@ public class Server implements NetworkNodes {
 
 	private void connectToServers(Set<Integer> availableServers) {
 		for (Integer sid : availableServers) {
-			restoreConnection(sid);
+			restoreConnection(sid, true);
 			addToAvailableServers(sid);
 		}
 	}
@@ -182,12 +182,16 @@ public class Server implements NetworkNodes {
 	@Override
 	public void breakConnection(int i) {
 		nc.breakOutgoingConnection(i);
+		availableServers.remove(i);
 	}
 
 	@Override
-	public void restoreConnection(int i) {
+	public void restoreConnection(int i, boolean isServer) {
 		try {
 			nc.initOutgoingConn(i);
+			if (isServer) {
+				availableServers.add(i);
+			}
 		} catch (IOException e) {
 		}
 	}
@@ -221,7 +225,7 @@ public class Server implements NetworkNodes {
 						request.setAntiEntropyReqContent(versionVector, csn);
 						nc.sendMsg(request);
 						try {
-							Thread.sleep(100);
+							Thread.sleep(500);
 						} catch (InterruptedException e) {
 							logger.info("AE thread interrupted while sleep");
 							return;
@@ -267,9 +271,6 @@ public class Server implements NetworkNodes {
 		private Message getNextMessage() {
 			try {
 				Message m = queue.take();
-				if (!nc.isOutgoingAvailable(m.getSrc())) {
-					restoreConnection(m.getSrc());
-				}
 				return m;
 			} catch (InterruptedException e) {
 				logger.severe("Interrupted Server: " + serverPid);
@@ -315,7 +316,6 @@ public class Server implements NetworkNodes {
 
 			Message createResp = new Message(serverPid, m.getSrc());
 			createResp.setCreateResContent(writeId, writeSet);
-			restoreConnection(m.getSrc());
 			nc.sendMsg(createResp);
 		}
 
@@ -376,10 +376,16 @@ public class Server implements NetworkNodes {
 	}
 
 	private void processAntiEntropyReq(Message m) {
-		// logger.info("Received a AE Request :" + m.toString());
+		logger.info("Received a AE Request :" + m.toString());
 		Message response = new Message(m.getDest(), m.getSrc());
 		response.setAntiEntropyResContent(computeWriteSet(m));
-		nc.sendMsg(response);
+		if (!nc.sendMsg(response)) {
+			logger.info("Uncessful in sending AE response to "
+					+ response.getDest());
+		} else {
+			logger.info("Successful in sending AE response to "
+					+ response.getDest());
+		}
 	}
 
 	// Assumes that m has csn and versionVector values set appropriately.
@@ -439,10 +445,10 @@ public class Server implements NetworkNodes {
 
 	private void processAntiEntropyRes(Message m) {
 		SortedSet<Operation> writeSet = m.getWriteSet();
+		logger.info("Received a AE response :" + m.toString());
 		if (writeSet == null || writeSet.size() == 0) {
 			return;
 		}
-		logger.info("Received a AE response :" + m.toString());
 		// Remove write which might already be present.
 		// Find insertion point of 1st write not already present in writeLog
 		Operation op = writeSet.first();
@@ -503,7 +509,7 @@ public class Server implements NetworkNodes {
 		if (i != serverPid) {
 			availableServers.add(i);
 			if (!nc.isOutgoingAvailable(i)) {
-				restoreConnection(i);
+				restoreConnection(i, true);
 			}
 		}
 	}

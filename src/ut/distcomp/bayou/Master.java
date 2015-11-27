@@ -76,6 +76,12 @@ public class Master {
 				 */
 				break;
 			case "stabilize":
+				try {
+					Thread.sleep(5000);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 				/*
 				 * TODO: Block until there are enough Anti-Entropy messages for
 				 * all values to propagate through the currently connected
@@ -129,7 +135,7 @@ public class Master {
 		}
 		scan.close();
 		for (NetworkNodes s : servers.values()) {
-			((Server)s).stopThreads();
+			((Server) s).stopThreads();
 		}
 		System.exit(0);
 	}
@@ -194,9 +200,9 @@ public class Master {
 
 	private static void restoreConnection(int id1, int id2) {
 		if (servers.containsKey(id1)) {
-			servers.get(id1).restoreConnection(id2);
+			servers.get(id1).restoreConnection(id2, !clients.containsKey(id2));
 		} else {
-			clients.get(id1).restoreConnection(id2);
+			clients.get(id1).restoreConnection(id2, false);
 		}
 	}
 
@@ -211,6 +217,9 @@ public class Master {
 	public static void joinServer(int serverId) {
 		Server s = new Server(serverId);
 		s.joinServer(servers.keySet());
+		for (NetworkNodes node : servers.values()) {
+			node.restoreConnection(serverId, true);
+		}
 		servers.put(serverId, s);
 	}
 
@@ -218,7 +227,7 @@ public class Master {
 		Client c = new Client(clientId);
 		clients.put(clientId, c);
 		c.joinClient(serverId);
-		servers.get(serverId).restoreConnection(clientId);
+		servers.get(serverId).restoreConnection(clientId, false);
 	}
 
 	static HashMap<Integer, NetworkNodes> servers = new HashMap<>();

@@ -49,7 +49,7 @@ public class Client implements NetworkNodes {
 	}
 
 	@Override
-	public void restoreConnection(int i) {
+	public void restoreConnection(int i, boolean isServer) {
 		joinClient(i);
 	}
 
