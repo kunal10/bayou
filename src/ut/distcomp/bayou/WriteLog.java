@@ -89,9 +89,13 @@ public class WriteLog {
 		}
 		return index;
 	}
-	
+
 	public void commitTentativeWrites() {
-		
+		int startIndex = csn.get() + 1;
+		for (int i = startIndex; i < log.size(); i++) {
+ 			log.get(i).getWriteId().setCsn(csn.incrementAndGet());
+		}
+
 	}
 
 	private AtomicBoolean isPrimary;
