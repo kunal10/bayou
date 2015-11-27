@@ -17,7 +17,8 @@ public class WriteLog {
 		this.logger = logger;
 	}
 
-	// Iterates over the log and returns 1st index i st log[i] > writeId
+	// Iterates over the log and returns 1st index i st:
+	// log[i].getWriteId() > writeId
 	public int findInsertionPoint(int startIndex, Operation op) {
 		int index = startIndex;
 		WriteId writeId = op.getWriteId();
@@ -56,8 +57,9 @@ public class WriteLog {
 				log.add(index, op);
 			} else {
 				WriteId oldWriteId = log.get(oldIndex).getWriteId();
-				// Ignore the write if its already present
-				if (writeId.equals(oldWriteId)) {
+				// Ignore the write if old write is already committed or its
+				// already present.
+				if (oldWriteId.isCommitted() || writeId.equals(oldWriteId)) {
 					continue;
 				}
 				// Old write is tentative, new write is committed.
