@@ -213,20 +213,24 @@ public class Server implements NetworkNodes {
 					}
 					continue;
 				}
-				HashSet<Integer> availableServers2 = new HashSet<>(
-						availableServers);
-				Iterator<Integer> iterator = availableServers2.iterator();
-				while (iterator.hasNext()) {
-					int dest = iterator.next();
-					Message request = new Message(serverPid, dest);
-					request.setAntiEntropyReqContent(versionVector, csn);
-					nc.sendMsg(request);
-					try {
-						Thread.sleep(100);
-					} catch (InterruptedException e) {
-						logger.info("AE thread interrupted while sleep");
-						return;
+				synchronized (availableServers) {
+					Iterator<Integer> iterator = availableServers.iterator();
+					while (iterator.hasNext()) {
+						int dest = iterator.next();
+						Message request = new Message(serverPid, dest);
+						request.setAntiEntropyReqContent(versionVector, csn);
+						nc.sendMsg(request);
+						try {
+							Thread.sleep(100);
+						} catch (InterruptedException e) {
+							logger.info("AE thread interrupted while sleep");
+							return;
+						}
 					}
+				}
+				try {
+					Thread.sleep(10);
+				} catch (InterruptedException e) {
 				}
 			}
 			logger.info("Closing AE thread");
@@ -319,8 +323,8 @@ public class Server implements NetworkNodes {
 			logger.info("Received a retire Request :" + m.toString());
 			if (m.isPrimary()) {
 				logger.info("Setting myself to primary");
-				// Commit all tentative writes on your server.
 				isPrimary.set(true);
+				// Commit all tentative writes on your server.
 				writeLog.commitTentativeWrites();
 			}
 		}
@@ -438,7 +442,7 @@ public class Server implements NetworkNodes {
 		if (writeSet == null || writeSet.size() == 0) {
 			return;
 		}
-		// logger.info("Received a AE response :" + m.toString());
+		logger.info("Received a AE response :" + m.toString());
 		// Remove write which might already be present.
 		// Find insertion point of 1st write not already present in writeLog
 		Operation op = writeSet.first();
