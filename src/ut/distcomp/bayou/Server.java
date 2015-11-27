@@ -13,9 +13,6 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Logger;
-
-import javax.swing.text.Position;
-
 import ut.distcomp.bayou.Message.MessageType;
 import ut.distcomp.bayou.Message.NodeType;
 import ut.distcomp.bayou.Operation.OperationType;
@@ -85,7 +82,7 @@ public class Server implements NetworkNodes {
 				printLog.add(formatLog(opType, songName, url, isCommited));
 			}
 		}
-		return null;
+		return printLog;
 	}
 
 	private void startThreads() {
@@ -95,7 +92,7 @@ public class Server implements NetworkNodes {
 		atThread.start();
 	}
 
-	private void stopThreads() {
+	public void stopThreads() {
 		if (receiveThread != null) {
 			receiveThread.interrupt();
 		}
@@ -177,10 +174,9 @@ public class Server implements NetworkNodes {
 			} catch (InterruptedException e) {
 			}
 		} while (aeRequest.getMsgType() != MessageType.ANTI_ENTROPY_REQ);
-
 		return aeRequest;
 	}
-
+	
 	@Override
 	public void breakConnection(int i) {
 		nc.breakOutgoingConnection(i);
@@ -322,6 +318,8 @@ public class Server implements NetworkNodes {
 			if (m.isPrimary()) {
 				logger.info("Setting myself to primary");
 				isPrimary = true;
+				// Commit all tentative writes on your server. 
+				writeLog.commitTentativeWrites();
 			}
 		}
 

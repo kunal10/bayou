@@ -83,6 +83,10 @@ public class WriteLog {
 		return index;
 	}
 	
+	public void commitTentativeWrites() {
+		
+	}
+	
 	private ArrayList<Operation> log;
 	private Logger logger;
 }

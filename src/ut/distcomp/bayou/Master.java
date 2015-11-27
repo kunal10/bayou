@@ -128,6 +128,9 @@ public class Master {
 			}
 		}
 		scan.close();
+		for (NetworkNodes s : servers.values()) {
+			((Server)s).stopThreads();
+		}
 		System.exit(0);
 	}
 
