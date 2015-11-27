@@ -80,6 +80,10 @@ public class WriteId implements Comparable<WriteId>, Serializable {
 	public ServerId getServerId() {
 		return serverId;
 	}
+	
+	public void setCsn(int csn) {
+		this.csn = csn;
+	}
 
 	private int csn;
 	private int acceptstamp;
