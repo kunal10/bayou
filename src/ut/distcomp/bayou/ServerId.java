@@ -22,14 +22,17 @@ public class ServerId implements Comparable<ServerId>, Serializable {
 		if (other == null) {
 			return GREATER;
 		}
-		
+
 		// TODO(klad) : Confirm what does ordering by names mean.
 		if (this.acceptstamp < other.getAcceptstamp()) {
 			return SMALLER;
 		} else if (this.acceptstamp > other.getAcceptstamp()) {
 			return GREATER;
 		} else {
-			if(this.parentId == null){
+			if (this.parentId == null) {
+				if (other.parentId == null) {
+					return EQUAL;
+				}
 				return SMALLER;
 			}
 			return this.parentId.compareTo(other.getParentId());
