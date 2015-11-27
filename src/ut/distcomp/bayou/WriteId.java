@@ -18,7 +18,7 @@ public class WriteId implements Comparable<WriteId>, Serializable {
 
 	public boolean isEquivalent(WriteId other) {
 		return this.acceptstamp == other.getAcceptstamp()
-				&& this.serverId == other.getServerId();
+				&& this.serverId.equals(other.getServerId());
 	}
 
 	@Override
@@ -50,12 +50,13 @@ public class WriteId implements Comparable<WriteId>, Serializable {
 	@Override
 	public String toString() {
 		StringBuilder result = new StringBuilder();
-		result.append("<" + acceptstamp + ", ");
+		result.append("< ");
 		if (csn != POSITIVE_INFINITY) {
 			result.append(csn + ", ");
 		} else {
 			result.append("INFINITY, ");
 		}
+		result.append(acceptstamp + ", ");
 		if (serverId != null) {
 			result.append(serverId.toString());
 		} else {

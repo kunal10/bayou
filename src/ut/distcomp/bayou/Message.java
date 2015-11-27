@@ -1,6 +1,7 @@
 package ut.distcomp.bayou;
 
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -59,7 +60,8 @@ public class Message implements Serializable {
 		destType = NodeType.CLIENT;
 		msgType = MessageType.STATE_RES;
 		synchronized (vv) {
-			versionVector = new HashMap<ServerId, Integer>(vv);
+			versionVector = Collections
+					.synchronizedMap(new HashMap<ServerId, Integer>(vv));
 		}
 	}
 
@@ -79,7 +81,8 @@ public class Message implements Serializable {
 		op = new Operation(OperationType.GET, TransactionType.READ, song, url,
 				null, -1);
 		synchronized (vv) {
-			versionVector = new HashMap<ServerId, Integer>(vv);
+			versionVector = Collections
+					.synchronizedMap(new HashMap<ServerId, Integer>(vv));
 		}
 	}
 
@@ -143,7 +146,7 @@ public class Message implements Serializable {
 		msgType = MessageType.RETIRE;
 		isPrimary = isPrimaryServer;
 	}
-	
+
 	public void setRetireReqContent(int procId) {
 		srcType = NodeType.SERVER;
 		destType = NodeType.SERVER;
@@ -179,7 +182,7 @@ public class Message implements Serializable {
 		if (versionVector != null) {
 			result.append("\nVersionVector:");
 			for (ServerId serverId : versionVector.keySet()) {
-				result.append("\tServerId:" + serverId.toString());
+				result.append("\nServerId:" + serverId.toString());
 				result.append(", Value: " + versionVector.get(serverId));
 			}
 		}

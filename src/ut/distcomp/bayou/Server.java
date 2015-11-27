@@ -48,9 +48,9 @@ public class Server implements NetworkNodes {
 			// This is the first server to join the system. Set your own
 			// server id to null and set yourself as primary.
 			isPrimary.set(true);
-			serverId = new ServerId(0, null);
+			csn.set(0);
 			acceptstamp.set(0);
-			csn.incrementAndGet();
+			serverId = new ServerId(0, null);
 			WriteId writeId = new WriteId(csn.get(), acceptstamp.get(),
 					serverId);
 			Operation op = new Operation(OperationType.CREATE,
@@ -383,8 +383,7 @@ public class Server implements NetworkNodes {
 			logger.info("Uncessful in sending AE response to "
 					+ response.getDest());
 		} else {
-			logger.info("Successful in sending AE response to "
-					+ response.getDest());
+			logger.info("Sent AE response to " + response.toString());
 		}
 	}
 
@@ -392,6 +391,8 @@ public class Server implements NetworkNodes {
 	// NOTE : If m is a CREATE_REQ then rCsn is -1 and rVV is null.
 	private SortedSet<Operation> computeWriteSet(Message m) {
 		int rCsn = m.getCsn();
+		logger.info(
+				"Computing Write Set. \n rCsn = " + rCsn + "\t CSN = " + csn);
 		Map<ServerId, Integer> rVV = m.getVersionVector();
 		ArrayList<Operation> log = writeLog.getLog();
 		SortedSet<Operation> writeSet = new TreeSet<>();
@@ -468,20 +469,8 @@ public class Server implements NetworkNodes {
 	}
 
 	private void updateState(Operation op) {
-		WriteId writeId = op.getWriteId();
-		ServerId sId = writeId.getServerId();
-		// Update csn.
-		if (writeId.isCommitted() && writeId.getCsn() > csn.get()) {
-			csn.set(writeId.getCsn());
-			logger.info("Updated csn as " + csn);
-		}
-		// Update version vector.
-		int as = writeId.getAcceptstamp();
-		if (versionVector.containsKey(sId)) {
-			as = Math.max(as, versionVector.get(sId));
-		}
-		logger.info("Changing VV : Server " + sId.toString() + " : " + as);
-		versionVector.put(sId, as);
+		updateCsn(op);
+		updateVersionVector(op);
 		updateAvailableServers(op);
 	}
 
@@ -489,6 +478,41 @@ public class Server implements NetworkNodes {
 		for (Operation op : writeSet) {
 			updateState(op);
 		}
+	}
+
+	private void updateCsn(Operation op) {
+		WriteId writeId = op.getWriteId();
+		// Update csn.
+		if (writeId.isCommitted() && writeId.getCsn() > csn.get()) {
+			csn.set(writeId.getCsn());
+			logger.info("Updated csn as " + csn);
+		}
+	}
+
+	private void updateVersionVector(Operation op) {
+		WriteId writeId = op.getWriteId();
+		ServerId sId = writeId.getServerId();
+		int as = writeId.getAcceptstamp();
+		// Remove retired server.
+		if (op.getOpType() == OperationType.RETIRE) {
+			versionVector.remove(sId);
+			logger.info("Removing retired server from VV: " + sId.toString());
+			return;
+		}
+		// Add newly created server.
+		// NOTE : 1st server is ignored here since its server id needs to be 
+		// handled differently.
+		if (op.getOpType() == OperationType.CREATE && as > 0) {
+			ServerId newServerId = new ServerId(as, sId);
+			versionVector.put(newServerId, as);
+			logger.info("Added new server to VV: " + newServerId.toString());
+		}
+		// Update the entry for server performing this write.
+		// NOTE : This will also handle create of 1st server.
+		if (versionVector.containsKey(sId)) {
+			as = Math.max(as, versionVector.get(sId));
+		}
+		versionVector.put(sId, as);
 	}
 
 	private void updateAvailableServers(Operation op) {
@@ -508,6 +532,9 @@ public class Server implements NetworkNodes {
 	private void addToAvailableServers(int i) {
 		if (i != serverPid) {
 			availableServers.add(i);
+			// TODO(asvenk) : Instead of creating connection here, create a
+			// connection to all servers at the start itself and remove this.
+			// This can potentially recreate a broken connection.
 			if (!nc.isOutgoingAvailable(i)) {
 				restoreConnection(i, true);
 			}

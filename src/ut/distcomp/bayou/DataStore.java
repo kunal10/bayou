@@ -53,7 +53,7 @@ public class DataStore {
 
 	public void rollbackTo(int index, WriteLog writeLog) {
 		ArrayList<Operation> log = writeLog.getLog();
-		for (int i = index; i < log.size(); i++) {
+		for (int i = log.size() -1; i >= index; i--) {
 			undo(log.get(i), writeLog);
 		}
 	}

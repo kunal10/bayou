@@ -26,9 +26,8 @@ public class WriteLog {
 			int result = writeId.compareTo(log.get(index).getWriteId());
 			if (result == WriteId.SMALLER) {
 				return index;
-			} else if (index == WriteId.EQUAL) {
-				logger.severe(
-						"Op already present in WriteLog: " + op.toString());
+			} else if (result == WriteId.EQUAL) {
+				logger.info("Op already present in WriteLog: " + op.toString());
 			}
 			index++;
 		}
@@ -95,7 +94,7 @@ public class WriteLog {
 	public void commitTentativeWrites() {
 		int startIndex = csn.get() + 1;
 		for (int i = startIndex; i < log.size(); i++) {
- 			log.get(i).getWriteId().setCsn(csn.incrementAndGet());
+			log.get(i).getWriteId().setCsn(csn.incrementAndGet());
 		}
 
 	}
