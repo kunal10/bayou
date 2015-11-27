@@ -14,6 +14,8 @@ import java.util.TreeSet;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Logger;
 
+import javax.swing.text.Position;
+
 import ut.distcomp.bayou.Message.MessageType;
 import ut.distcomp.bayou.Message.NodeType;
 import ut.distcomp.bayou.Operation.OperationType;
@@ -398,14 +400,26 @@ public class Server implements NetworkNodes {
 		for (int i = csn + 1; i < log.size(); i++) {
 			Operation op = log.get(i);
 			WriteId wId = op.getWriteId();
-			// Receiver does not know about this server.
-			if (rVV == null || !rVV.containsKey(wId.getServerId())) {
-				writeSet.add(op);
-			} else if (rVV.get(wId.getServerId()) < wId.getAcceptstamp()) {
+			if (completeVV(rVV, wId.getServerId()) < wId.getAcceptstamp()) {
 				writeSet.add(op);
 			}
 		}
 		return writeSet;
+	}
+	
+	private int completeVV(Map<ServerId, Integer> rVV, ServerId sId) {
+		// If entry is present return it.
+		if (rVV.containsKey(sId)) {
+			return rVV.get(sId);
+		}
+		// Else sId entry missing in rVV.
+		if (sId.getParentId() == null) {
+			return WriteId.POSITIVE_INFINITY;
+		}
+		if (completeVV(rVV, sId.getParentId()) >= sId.getAcceptstamp()) {
+			return WriteId.POSITIVE_INFINITY;
+		}
+		return WriteId.NEGATIVE_INFINITY;
 	}
 
 	private void processCreateRes(Message m) {
