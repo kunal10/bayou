@@ -1,9 +1,12 @@
 package ut.distcomp.bayou;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
-import ut.distcomp.bayou.Message.MessageType;
 import java.util.logging.Logger;
+
+import ut.distcomp.bayou.Message.MessageType;
 import ut.distcomp.bayou.Message.NodeType;
 import ut.distcomp.bayou.Operation.OperationType;
 import ut.distcomp.framework.NetController;
@@ -23,7 +26,8 @@ public class SessionManager {
 
 	public String ExecuteTransaction(OperationType op, String songName,
 			String url) {
-		HashMap<ServerId, Integer> serverVector = getServerState();
+		logger.info("Executing transaction : " + op.toString());
+		Map<ServerId, Integer> serverVector = getServerState();
 		if (op == OperationType.GET) {
 			return Read(serverVector, songName);
 		} else {
@@ -32,31 +36,36 @@ public class SessionManager {
 		return null;
 	}
 
-	private HashMap<ServerId, Integer> getServerState() {
-		HashMap<ServerId, Integer> serverState = new HashMap<>();
-		Message m = new Message(clientId, serverProcId);
-		m.setStateReqContent();
-		m = getServerReply();
-		if (!(m.getMsgType() == MessageType.STATE_RES)) {
+	private Map<ServerId, Integer> getServerState() {
+		Map<ServerId, Integer> serverState = Collections
+				.synchronizedMap(new HashMap<>());
+		Message request = new Message(clientId, serverProcId);
+		request.setStateReqContent();
+		nc.sendMsg(request);
+		logger.info("Request for server state");
+		logger.info(request.toString());
+		Message response = getServerResponse();
+		logger.info("Received for server response");
+		logger.info(response.toString());
+		if (!(response.getMsgType() == MessageType.STATE_RES)) {
 			nc.getConfig().logger
 					.severe("Received unexpected message instead of State Response:"
-							+ m.toString());
+							+ response.toString());
 
 		} else {
-			serverState = m.getVersionVector();
+			serverState = response.getVersionVector();
 		}
 		return serverState;
 	}
 
-	private String Read(HashMap<ServerId, Integer> serverVector,
-			String songName) {
+	private String Read(Map<ServerId, Integer> serverVector, String songName) {
 		String result = "";
-		nc.getConfig().logger.info("Initiating write : " + songName);
+		nc.getConfig().logger.info("Initiating read : " + songName);
 		if (guarantee(serverVector)) {
 			// Send a message to read to the server
 			sendReadToServer(songName);
 			// Extract the result and the server vector
-			Message reply = getServerReply();
+			Message reply = getServerResponse();
 			if (reply != null && reply.getMsgType() == MessageType.READ_RES) {
 				// Reset the read vector to max of read and server vector
 				result = reply.getOp().getUrl();
@@ -75,8 +84,8 @@ public class SessionManager {
 		return result;
 	}
 
-	private void setMaximum(HashMap<ServerId, Integer> readVector,
-			HashMap<ServerId, Integer> relevantWriteVector) {
+	private void setMaximum(Map<ServerId, Integer> readVector,
+			Map<ServerId, Integer> relevantWriteVector) {
 		for (ServerId s : relevantWriteVector.keySet()) {
 			if (readVector.containsKey(s)) {
 				int newVal = Math.max(readVector.get(s),
@@ -88,16 +97,14 @@ public class SessionManager {
 		}
 	}
 
-	private Message getServerReply() {
-		Message reply = null;
+	private Message getServerResponse() {
+		Message response = null;
 		try {
-			reply = queue.take();
-			nc.getConfig().logger
-					.info("Client extracted : " + reply.toString());
+			response = queue.take();
 		} catch (InterruptedException e) {
 			logger.severe("Interrupted while waiting for a reply from server");
 		}
-		return reply;
+		return response;
 	}
 
 	private void sendReadToServer(String songName) {
@@ -115,17 +122,20 @@ public class SessionManager {
 		nc.getConfig().logger.info("Client sending write " + m.toString());
 	}
 
-	private void Write(HashMap<ServerId, Integer> serverVector, String songName,
+	private void Write(Map<ServerId, Integer> serverVector, String songName,
 			String url, OperationType op) {
 		nc.getConfig().logger.info("Initiating write : " + songName);
 		if (guarantee(serverVector)) {
+			logger.info("Server write is guranteed");
 			// Send a write to the server
 			sendWriteToServer(songName, url, op);
 			// Wait for the server to return the WID
-			Message reply = getServerReply();
+			Message reply = getServerResponse();
 			if (reply != null && reply.getMsgType() == MessageType.WRITE_RES) {
 				writeVector.put(reply.getWriteId().getServerId(),
 						reply.getWriteId().getAcceptstamp());
+				logger.info("Write vector after write :");
+				logVector(writeVector);
 			} else {
 				nc.getConfig().logger
 						.severe("Should have received write response.");
@@ -137,7 +147,7 @@ public class SessionManager {
 		}
 	}
 
-	private boolean guarantee(HashMap<ServerId, Integer> serverVector) {
+	private boolean guarantee(Map<ServerId, Integer> serverVector) {
 		// Check whether S dominates the read vector
 		if (!dominates(serverVector, readVector)) {
 			nc.getConfig().logger.info("Cannot provide read gurantee");
@@ -154,8 +164,8 @@ public class SessionManager {
 	 * Server vector is dominant to client vector if its is greater than equal
 	 * to all components.
 	 */
-	private boolean dominates(HashMap<ServerId, Integer> serverVector,
-			HashMap<ServerId, Integer> clientVector) {
+	private boolean dominates(Map<ServerId, Integer> serverVector,
+			Map<ServerId, Integer> clientVector) {
 		nc.getConfig().logger.info("Comparing vectors ");
 		logVector(serverVector);
 		nc.getConfig().logger.info("and");
@@ -178,7 +188,7 @@ public class SessionManager {
 		this.serverProcId = serverProcId;
 	}
 
-	public void logVector(HashMap<ServerId, Integer> v) {
+	public void logVector(Map<ServerId, Integer> v) {
 		for (ServerId s : v.keySet()) {
 			nc.getConfig().logger.info(s.toString() + " : " + v.get(s));
 		}

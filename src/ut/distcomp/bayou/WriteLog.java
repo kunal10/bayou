@@ -34,6 +34,7 @@ public class WriteLog {
 		SortedSet<Operation> writeSet = new TreeSet<>();
 		writeSet.add(op);
 		insert(writeSet);
+		logger.info("Inserting Operation into write log :"+op.toString());
 	}
 
 	public void insert(SortedSet<Operation> writeSet) {

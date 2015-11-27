@@ -26,6 +26,9 @@ public class WriteId implements Comparable<WriteId>, Serializable {
 		if (this == other) {
 			return EQUAL;
 		}
+		if (other == null) {
+			return GREATER;
+		}
 		if (this.csn != POSITIVE_INFINITY) {
 			if (this.csn < other.getCsn()) {
 				return SMALLER;

@@ -131,6 +131,7 @@ public class NetController {
 			OutgoingSock outSocket = outSockets.get(process);
 			if (outSocket != null) {
 				outSocket.sendMsg(msg);
+				// config.logger.info("Sent message "+msg.toString());
 			} else {
 				config.logger.severe(
 						"There is no outgoing socket available for " + process);

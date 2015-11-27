@@ -14,6 +14,7 @@ public class Master {
 			String[] inputLine = scan.nextLine().split(" ");
 			int clientId, serverId, id1, id2;
 			String songName, URL;
+			System.out.println(inputLine[0]);
 			switch (inputLine[0]) {
 			case "joinServer":
 				serverId = Integer.parseInt(inputLine[1]);
@@ -132,12 +133,13 @@ public class Master {
 
 	private static void retireServer(int serverId) {
 		Server s = (Server) servers.get(serverId);
-		s.RetireServer();
+		s.retireServer();
+		servers.remove(serverId);
 	}
 
 	private static void printLog(int serverId) {
 		Server s = (Server) servers.get(serverId);
-		List<String> l = s.PrintLog();
+		List<String> l = s.printLog();
 		for (String string : l) {
 			System.out.println(string);
 		}
@@ -176,14 +178,14 @@ public class Master {
 	private static void start() {
 		for (NetworkNodes s : servers.values()) {
 			Server s1 = ((Server) s);
-			s1.Start();
+			s1.start();
 		}
 	}
 
 	private static void pause() {
 		for (NetworkNodes s : servers.values()) {
 			Server s1 = ((Server) s);
-			s1.Pause();
+			s1.pause();
 		}
 	}
 
@@ -205,7 +207,7 @@ public class Master {
 
 	public static void joinServer(int serverId) {
 		Server s = new Server(serverId);
-		s.JoinServer(servers.keySet());
+		s.joinServer(servers.keySet());
 		servers.put(serverId, s);
 	}
 

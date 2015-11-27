@@ -2,7 +2,7 @@ package ut.distcomp.bayou;
 
 import java.io.Serializable;
 
-public class Operation implements Serializable{
+public class Operation implements Serializable, Comparable<Operation>{
 	
 	public enum OperationType {
 		GET, PUT, DELETE, CREATE, RETIRE,
@@ -13,13 +13,14 @@ public class Operation implements Serializable{
 	}
 
 	public Operation(OperationType opType, TransactionType transactionType,
-			String song, String url, WriteId writeId) {
+			String song, String url, WriteId writeId, int pid) {
 		super();
 		this.opType = opType;
 		this.transactionType = transactionType;
 		this.song = song;
 		this.url = url;
 		this.writeId = writeId;
+		this.pid = pid;
 	}
 
 	public String toString() {
@@ -61,6 +62,21 @@ public class Operation implements Serializable{
 		this.writeId = writeId;
 	}
 
+	public int getPid() {
+		return pid;
+	}
+
+	@Override
+	public int compareTo(Operation other) {
+		if (this == other) {
+			return WriteId.EQUAL;
+		}
+		if (other == null) {
+			return WriteId.GREATER;
+		}
+		return this.getWriteId().compareTo(other.getWriteId());
+	}
+	
 	private OperationType opType;
 	private TransactionType transactionType;
 	// Should be non-empty and non-null in all operations.
@@ -69,6 +85,7 @@ public class Operation implements Serializable{
 	private String url;
 	// Present only if transactionType == WRITE
 	private WriteId writeId;
-	private static final long serialVersionUID = -1960600520502849058L;
+	private int pid;
 	
+	private static final long serialVersionUID = 1L;
 }

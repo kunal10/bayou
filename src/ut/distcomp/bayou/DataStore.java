@@ -36,7 +36,8 @@ public class DataStore {
 			int index = log.indexOf(op);
 			for (int i = 0; i < index && i < log.size(); i++) {
 				Operation opr = log.get(i);
-				if (opr.getSong().equals(op.getSong())) {
+				if (opr.getSong() != null
+						&& opr.getSong().equals(op.getSong())) {
 					execute(opr);
 				}
 			}

@@ -22,12 +22,12 @@ import ut.distcomp.bayou.Message;
 public class IncomingSock extends Thread {
 	Socket sock;
 	ObjectInputStream in;
-	
+
 	Logger logger;
-	
 
 	public IncomingSock(Socket sock, ObjectInputStream inputStream,
-			LinkedBlockingQueue<Message> queue, Logger logger) throws IOException {
+			LinkedBlockingQueue<Message> queue, Logger logger)
+					throws IOException {
 		this.sock = sock;
 		in = inputStream;
 		sock.shutdownOutput();
@@ -39,6 +39,7 @@ public class IncomingSock extends Thread {
 		while (!shutdownSet) {
 			try {
 				Message msg = (Message) in.readObject();
+				//logger.info("Added to queue : " + msg.toString());
 				queue.add(msg);
 			} catch (EOFException e) {
 				logger.log(Level.SEVERE, "EOF Exception");
@@ -78,7 +79,7 @@ public class IncomingSock extends Thread {
 		} catch (IOException e) {
 		}
 	}
-	
+
 	private LinkedBlockingQueue<Message> queue;
 	private volatile boolean shutdownSet;
 }

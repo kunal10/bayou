@@ -3,11 +3,13 @@ package ut.distcomp.bayou;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.SortedSet;
 
 import ut.distcomp.bayou.Operation.OperationType;
 import ut.distcomp.bayou.Operation.TransactionType;
 
+// TODO : Int field for proc id 
 public class Message implements Serializable {
 	public enum NodeType {
 		CLIENT, SERVER,
@@ -25,6 +27,7 @@ public class Message implements Serializable {
 		CREATE_REQ, // SERVER SERVER
 		CREATE_RES, // SERVER SERVER
 		RETIRE, // SERVER SERVER
+		RETIRE_REQ, // SERVER SERVER
 		ANTI_ENTROPY_REQ, // SERVER SERVER
 		ANTI_ENTROPY_RES, // SERVER SERVER
 		// @formatter:on
@@ -50,11 +53,13 @@ public class Message implements Serializable {
 		msgType = MessageType.STATE_REQ;
 	}
 
-	public void setStateResContent(HashMap<ServerId, Integer> vv) {
+	public void setStateResContent(Map<ServerId, Integer> vv) {
 		srcType = NodeType.SERVER;
 		destType = NodeType.CLIENT;
 		msgType = MessageType.STATE_RES;
-		versionVector = vv;
+		synchronized (vv) {
+			versionVector = new HashMap<ServerId, Integer>(vv);
+		}
 	}
 
 	public void setReadContent(String song) {
@@ -62,17 +67,19 @@ public class Message implements Serializable {
 		destType = NodeType.SERVER;
 		msgType = MessageType.READ;
 		op = new Operation(OperationType.GET, TransactionType.READ, song, null,
-				null);
+				null, -1);
 	}
 
 	public void setReadResContent(String song, String url,
-			HashMap<ServerId, Integer> vv) {
+			Map<ServerId, Integer> vv) {
 		srcType = NodeType.SERVER;
 		destType = NodeType.CLIENT;
 		msgType = MessageType.READ_RES;
 		op = new Operation(OperationType.GET, TransactionType.READ, song, url,
-				null);
-		versionVector = vv;
+				null, -1);
+		synchronized (vv) {
+			versionVector = new HashMap<ServerId, Integer>(vv);
+		}
 	}
 
 	// NOTE : url is null for delete operations
@@ -82,7 +89,7 @@ public class Message implements Serializable {
 		srcType = sourceType;
 		destType = NodeType.SERVER;
 		msgType = MessageType.WRITE;
-		op = new Operation(opType, TransactionType.WRITE, song, url, wId);
+		op = new Operation(opType, TransactionType.WRITE, song, url, wId, -1);
 	}
 
 	public void setWriteResContent(WriteId wId) {
@@ -92,12 +99,14 @@ public class Message implements Serializable {
 		writeId = wId;
 	}
 
-	public void setAntiEntropyReqContent(HashMap<ServerId, Integer> vv,
+	public void setAntiEntropyReqContent(Map<ServerId, Integer> vv,
 			int commitSeqNo) {
 		srcType = NodeType.SERVER;
 		destType = NodeType.SERVER;
 		msgType = MessageType.ANTI_ENTROPY_REQ;
-		versionVector = vv;
+		synchronized (vv) {
+			versionVector = new HashMap<ServerId, Integer>(vv);
+		}
 		csn = commitSeqNo;
 	}
 
@@ -115,15 +124,16 @@ public class Message implements Serializable {
 		srcType = NodeType.SERVER;
 		destType = NodeType.SERVER;
 		msgType = MessageType.CREATE_REQ;
-		op = new Operation(OperationType.CREATE, TransactionType.WRITE,
-				procId + "", null, null);
+		op = new Operation(OperationType.CREATE, TransactionType.WRITE, null,
+				null, null, procId);
 	}
 
-	public void setCreateResContent(WriteId wId) {
+	public void setCreateResContent(WriteId wId, SortedSet<Operation> wSet) {
 		srcType = NodeType.SERVER;
 		destType = NodeType.SERVER;
 		msgType = MessageType.CREATE_RES;
 		writeId = wId;
+		writeSet = wSet;
 	}
 
 	public void setRetireContent(boolean isPrimaryServer) {
@@ -131,6 +141,14 @@ public class Message implements Serializable {
 		destType = NodeType.SERVER;
 		msgType = MessageType.RETIRE;
 		isPrimary = isPrimaryServer;
+	}
+	
+	public void setRetireReqContent(int procId) {
+		srcType = NodeType.SERVER;
+		destType = NodeType.SERVER;
+		msgType = MessageType.RETIRE;
+		op = new Operation(OperationType.RETIRE, TransactionType.WRITE, null,
+				null, null, procId);
 	}
 
 	@Override
@@ -199,7 +217,7 @@ public class Message implements Serializable {
 		return writeSet;
 	}
 
-	public HashMap<ServerId, Integer> getVersionVector() {
+	public Map<ServerId, Integer> getVersionVector() {
 		return versionVector;
 	}
 
@@ -218,8 +236,9 @@ public class Message implements Serializable {
 	private MessageType msgType;
 	private Operation op;
 	private WriteId writeId;
+	// TODO: Implement copy constructor for this ?
 	private SortedSet<Operation> writeSet;
-	private HashMap<ServerId, Integer> versionVector;
+	private Map<ServerId, Integer> versionVector;
 	private int csn;
 	private boolean isPrimary;
 
