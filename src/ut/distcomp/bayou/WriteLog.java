@@ -4,11 +4,15 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 public class WriteLog {
-	public WriteLog(Logger logger) {
+	public WriteLog(AtomicBoolean isPrimary, AtomicInteger csn, Logger logger) {
 		super();
+		this.isPrimary = isPrimary;
+		this.csn = csn;
 		this.log = new ArrayList<>();
 		this.logger = logger;
 	}
@@ -29,12 +33,12 @@ public class WriteLog {
 		}
 		return index;
 	}
-	
+
 	public void insert(Operation op) {
 		SortedSet<Operation> writeSet = new TreeSet<>();
 		writeSet.add(op);
 		insert(writeSet);
-		logger.info("Inserting Operation into write log :"+op.toString());
+		logger.info("Inserting Operation into write log :" + op.toString());
 	}
 
 	public void insert(SortedSet<Operation> writeSet) {
@@ -46,6 +50,9 @@ public class WriteLog {
 			WriteId writeId = op.getWriteId();
 			int oldIndex = indexOf(writeId);
 			if (oldIndex == -1) {
+				if (isPrimary.get() && !writeId.isCommitted()) {
+					writeId.setCsn(csn.incrementAndGet());
+				}
 				log.add(index, op);
 			} else {
 				WriteId oldWriteId = log.get(oldIndex).getWriteId();
@@ -71,10 +78,10 @@ public class WriteLog {
 	public ArrayList<Operation> getLog() {
 		return log;
 	}
-	
+
 	private int indexOf(WriteId writeId) {
 		int index = -1;
-		for (int i = 0 ; i < log.size(); i++) {
+		for (int i = 0; i < log.size(); i++) {
 			if (writeId.isEquivalent(log.get(i).getWriteId())) {
 				index = i;
 				break;
@@ -86,7 +93,9 @@ public class WriteLog {
 	public void commitTentativeWrites() {
 		
 	}
-	
+
+	private AtomicBoolean isPrimary;
+	private AtomicInteger csn;
 	private ArrayList<Operation> log;
 	private Logger logger;
 }

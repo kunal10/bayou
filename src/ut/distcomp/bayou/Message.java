@@ -5,11 +5,12 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.SortedSet;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import ut.distcomp.bayou.Operation.OperationType;
 import ut.distcomp.bayou.Operation.TransactionType;
 
-// TODO : Int field for proc id 
 public class Message implements Serializable {
 	public enum NodeType {
 		CLIENT, SERVER,
@@ -100,14 +101,14 @@ public class Message implements Serializable {
 	}
 
 	public void setAntiEntropyReqContent(Map<ServerId, Integer> vv,
-			int commitSeqNo) {
+			AtomicInteger commitSeqNo) {
 		srcType = NodeType.SERVER;
 		destType = NodeType.SERVER;
 		msgType = MessageType.ANTI_ENTROPY_REQ;
 		synchronized (vv) {
 			versionVector = new HashMap<ServerId, Integer>(vv);
+			csn = commitSeqNo.get();
 		}
-		csn = commitSeqNo;
 	}
 
 	public void setAntiEntropyResContent(SortedSet<Operation> unknownWrites) {

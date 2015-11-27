@@ -12,6 +12,8 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import ut.distcomp.bayou.Message.MessageType;
 import ut.distcomp.bayou.Message.NodeType;
@@ -21,7 +23,6 @@ import ut.distcomp.framework.Config;
 import ut.distcomp.framework.NetController;
 
 public class Server implements NetworkNodes {
-	// TODO: Add your own entry to version vector ?
 	public Server(int serverPid) {
 		this.serverPid = serverPid;
 		this.queue = new LinkedBlockingQueue<>();
@@ -29,13 +30,13 @@ public class Server implements NetworkNodes {
 				new Config(serverPid, "LogServer" + serverPid), queue);
 		this.logger = nc.getConfig().logger;
 		this.dataStore = new DataStore();
-		this.writeLog = new WriteLog(logger);
-		// This will be set
+		// This is set when server receives CREATE_RES message.
 		this.serverId = null;
-		this.isPrimary = false;
-		this.csn = -1;
-		this.acceptstamp = -1;
+		this.isPrimary = new AtomicBoolean(false);
+		this.csn = new AtomicInteger(-1);
+		this.acceptstamp = new AtomicInteger(-1);
 		this.versionVector = Collections.synchronizedMap(new HashMap<>());
+		this.writeLog = new WriteLog(isPrimary, csn, logger);
 		this.pause = false;
 		this.availableServers = Collections.synchronizedSet(new HashSet<>());
 	}
@@ -46,11 +47,12 @@ public class Server implements NetworkNodes {
 		if (set.size() == 0) {
 			// This is the first server to join the system. Set your own
 			// server id to null and set yourself as primary.
-			isPrimary = true;
+			isPrimary.set(true);
 			serverId = new ServerId(0, null);
-			acceptstamp = 0;
-			csn++;
-			WriteId writeId = new WriteId(csn, acceptstamp, serverId);
+			acceptstamp.set(0);
+			csn.incrementAndGet();
+			WriteId writeId = new WriteId(csn.get(), acceptstamp.get(),
+					serverId);
 			Operation op = new Operation(OperationType.CREATE,
 					TransactionType.WRITE, null, null, writeId, serverPid);
 			writeLog.insert(op);
@@ -159,7 +161,7 @@ public class Server implements NetworkNodes {
 				+ antiEntropyReq.getSrc());
 		// Send retire message to that server.
 		Message retire = new Message(serverPid, antiEntropyReq.getSrc());
-		retire.setRetireContent(isPrimary);
+		retire.setRetireContent(isPrimary.get());
 		nc.sendMsg(retire);
 		logger.info("Sent retire to " + antiEntropyReq.getSrc());
 		nc.shutdown();
@@ -176,7 +178,7 @@ public class Server implements NetworkNodes {
 		} while (aeRequest.getMsgType() != MessageType.ANTI_ENTROPY_REQ);
 		return aeRequest;
 	}
-	
+
 	@Override
 	public void breakConnection(int i) {
 		nc.breakOutgoingConnection(i);
@@ -317,8 +319,8 @@ public class Server implements NetworkNodes {
 			logger.info("Received a retire Request :" + m.toString());
 			if (m.isPrimary()) {
 				logger.info("Setting myself to primary");
-				isPrimary = true;
-				// Commit all tentative writes on your server. 
+				// Commit all tentative writes on your server.
+				isPrimary.set(true);
 				writeLog.commitTentativeWrites();
 			}
 		}
@@ -350,15 +352,10 @@ public class Server implements NetworkNodes {
 	// anti-entropy are handled in processAntiEntropyRes.
 	private WriteId processWrite(Message m) {
 		logger.info("Executing a write Request :" + m.toString());
-		// TODO(klad) : Confirm if we need to take max with system clock ?
-		acceptstamp = acceptstamp + 1;
+		acceptstamp.incrementAndGet();
 		Operation op = m.getOp();
-		int commitSeqNo = WriteId.POSITIVE_INFINITY;
-		if (isPrimary) {
-			csn++;
-			commitSeqNo = csn;
-		}
-		op.setWriteId(new WriteId(commitSeqNo, acceptstamp, serverId));
+		op.setWriteId(new WriteId(WriteId.POSITIVE_INFINITY, acceptstamp.get(),
+				serverId));
 		// Add write to write log.
 		writeLog.insert(op);
 		// Update version vector and csn.
@@ -389,13 +386,13 @@ public class Server implements NetworkNodes {
 		ArrayList<Operation> log = writeLog.getLog();
 		SortedSet<Operation> writeSet = new TreeSet<>();
 		// Add all committed writes unknown to receiver.
-		if (rCsn < csn) {
-			for (int i = rCsn + 1; i <= csn; i++) {
+		if (rCsn < csn.get()) {
+			for (int i = rCsn + 1; i <= csn.get(); i++) {
 				writeSet.add(log.get(i));
 			}
 		}
 		// Add all tentative writes unknown to receiver.
-		for (int i = csn + 1; i < log.size(); i++) {
+		for (int i = csn.get() + 1; i < log.size(); i++) {
 			Operation op = log.get(i);
 			WriteId wId = op.getWriteId();
 			if (completeVV(rVV, wId.getServerId()) < wId.getAcceptstamp()) {
@@ -404,7 +401,7 @@ public class Server implements NetworkNodes {
 		}
 		return writeSet;
 	}
-	
+
 	private int completeVV(Map<ServerId, Integer> rVV, ServerId sId) {
 		// If entry is present return it.
 		if (rVV.containsKey(sId)) {
@@ -425,10 +422,10 @@ public class Server implements NetworkNodes {
 		WriteId writeId = m.getWriteId();
 		serverId = new ServerId(writeId.getAcceptstamp(),
 				writeId.getServerId());
-		acceptstamp = writeId.getAcceptstamp();
+		acceptstamp.set(writeId.getAcceptstamp());
 		logger.info("Adding myself: Server " + serverId.toString() + " : "
 				+ acceptstamp);
-		versionVector.put(serverId, acceptstamp);
+		versionVector.put(serverId, acceptstamp.get());
 		// For create response, handling of writeSet is same as anti-entropy
 		// response message. Although we can optimize by avoiding some steps
 		// like rollback in this case this is simpler.
@@ -455,16 +452,17 @@ public class Server implements NetworkNodes {
 		// Execute all operations from insertion point till end of the log.
 		dataStore.rollforwardFrom(insertionPoint, writeLog);
 		op = writeSet.last();
-		acceptstamp = Math.max(acceptstamp, op.getWriteId().getAcceptstamp());
+		acceptstamp.set(
+				Math.max(acceptstamp.get(), op.getWriteId().getAcceptstamp()));
 		logger.info("Setting acceptstamp to: " + acceptstamp);
 	}
 
 	private void updateState(Operation op) {
 		WriteId writeId = op.getWriteId();
 		ServerId sId = writeId.getServerId();
-		// Update csn. 
-		if (writeId.isCommitted() && writeId.getCsn() > csn) {
-			csn = writeId.getCsn();
+		// Update csn.
+		if (writeId.isCommitted() && writeId.getCsn() > csn.get()) {
+			csn.set(writeId.getCsn());
 			logger.info("Updated csn as " + csn);
 		}
 		// Update version vector.
@@ -484,9 +482,6 @@ public class Server implements NetworkNodes {
 	}
 
 	private void updateAvailableServers(Operation op) {
-		// If a write is of type retire then remove the entry from the version
-		// vector.
-		// TODO: Check whether removal from version vector here is correct.
 		if (op.getOpType() == OperationType.RETIRE) {
 			logger.info("RETIRE op found : " + op.toString());
 			if (serverId != op.getWriteId().getServerId()) {
@@ -517,11 +512,9 @@ public class Server implements NetworkNodes {
 	private final Set<Integer> availableServers;
 	private WriteLog writeLog;
 	private ServerId serverId;
-	private boolean isPrimary;
-	// TODO(klad) : Do we need to make these synchronized since they might be
-	// accessed from multiple threads ??
-	private int csn;
-	private int acceptstamp;
+	private AtomicBoolean isPrimary;
+	private AtomicInteger csn;
+	private AtomicInteger acceptstamp;
 	private Map<ServerId, Integer> versionVector;
 	private boolean pause;
 	private ReceiveThread receiveThread;
