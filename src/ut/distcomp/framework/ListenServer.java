@@ -33,7 +33,7 @@ public class ListenServer extends Thread {
 		try {
 			serverSock = new ServerSocket(port);
 			conf.logger.info(String.format(
-					"Server %d: Server connection established", procNum));
+					"Server %d: Listening on : ", port));
 		} catch (IOException e) {
 			String errStr = String.format(
 					"Server %d: [FATAL] Can't open server port %d", procNum,
@@ -52,16 +52,19 @@ public class ListenServer extends Thread {
 	}
 
 	public void run() {
+		this.setName("Listen Thread "+procNum);
 		while (!killSig) {
 			try {
+				conf.logger.info("ACCEPT : Waiting for connection");
 				Socket incomingSocket = serverSock.accept();
+				conf.logger.info("ACCEPT : Received a connection");
 				// The first message sent on this connection is the process ID
 				// of the process which initiated this connection.
 				ObjectInputStream inputStream = new ObjectInputStream(
 						incomingSocket.getInputStream());
 				int incomingProcId = inputStream.readInt();
 				conf.logger.log(Level.INFO,
-						"Accepted connection from host name : "
+						"ACCEPT: connection from host name : "
 								+ incomingProcId);
 				IncomingSock incomingSock = null;
 				incomingSock = new IncomingSock(incomingSocket, inputStream,
@@ -71,11 +74,12 @@ public class ListenServer extends Thread {
 					socketList.put(incomingProcId, incomingSock);
 				}
 				incomingSock.start();
-				conf.logger.fine(String.format(
-						"Server %d: New incoming connection accepted from %s",
+				conf.logger.info(String.format(
+						"Server %d: New incoming connection accepted from %d",
 						procNum,
-						incomingSock.sock.getInetAddress().getHostName()));
-			} catch (IOException e) {
+						incomingProcId));
+			} catch (Exception e) {
+				conf.logger.severe("Exception in listen server");
 				if (!killSig) {
 					conf.logger.log(Level.INFO, String.format(
 							"Server %d: Incoming socket failed", procNum), e);

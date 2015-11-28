@@ -30,13 +30,13 @@ public class Client implements NetworkNodes {
 
 	public void put(String songName, String url) {
 		sessionManager.ExecuteTransaction(OperationType.PUT, songName, url);
-		
+
 	}
 
-	public void get(String songName) {
+	public String get(String songName) {
 		String result = sessionManager.ExecuteTransaction(OperationType.GET,
 				songName, "");
-		System.out.println(result);
+		return songName + ":" + result;
 	}
 
 	public void delete(String songName) {

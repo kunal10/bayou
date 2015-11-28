@@ -39,7 +39,6 @@ public class NetController {
 		outSockets = new HashMap<>();
 		listener = new ListenServer(config, inSockets, queue);
 		listener.start();
-
 	}
 
 	public Config getConfig() {
@@ -67,11 +66,14 @@ public class NetController {
 		} else {
 			Socket bareSocket = new Socket(getProcessAddress(proc),
 					getProcessPort(proc));
+			config.logger.info("OUTGOING: Initiating outgoing socket for "
+					+ getProcessPort(proc));
 			ObjectOutputStream outputStream = new ObjectOutputStream(
 					bareSocket.getOutputStream());
 			// Send your process ID to the server to which you just initiated
 			// the connection.
 			outputStream.writeInt(config.procNum);
+			outputStream.flush();
 			outSockets.put(proc, new OutgoingSock(bareSocket, outputStream));
 			config.logger
 					.info(String.format("Server %d: Socket to %d established",

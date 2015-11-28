@@ -2,6 +2,7 @@ package ut.distcomp.bayou;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
@@ -143,15 +144,17 @@ public class Master {
 	private static void retireServer(int serverId) {
 		Server s = (Server) servers.get(serverId);
 		s.retireServer();
-		servers.remove(serverId);
+		retiredServers.put(serverId, s);
 	}
 
 	private static void printLog(int serverId) {
 		Server s = (Server) servers.get(serverId);
 		List<String> l = s.printLog();
-		for (String string : l) {
-			System.out.println(string);
-		}
+		if (l != null) {
+			for (String string : l) {
+				System.out.println(string);
+			}
+		} 
 	}
 
 	private static void delete(int clientId, String songName) {
@@ -159,7 +162,6 @@ public class Master {
 		if (c != null) {
 			c.delete(songName);
 		} else {
-			System.out.println("cannot find client");
 		}
 
 	}
@@ -167,9 +169,8 @@ public class Master {
 	private static void get(int clientId, String songName) {
 		Client c = (Client) clients.get(clientId);
 		if (c != null) {
-			c.get(songName);
+			System.out.println(c.get(songName));
 		} else {
-			System.out.println("cannot find client");
 		}
 
 	}
@@ -179,7 +180,6 @@ public class Master {
 		if (c != null) {
 			c.put(songName, url);
 		} else {
-			System.out.println("cannot find client");
 		}
 
 	}
@@ -216,10 +216,13 @@ public class Master {
 
 	public static void joinServer(int serverId) {
 		Server s = new Server(serverId);
-		s.joinServer(servers.keySet());
+		retiredServers.remove(serverId);
+		Set<Integer> availableServers = new HashSet<>(servers.keySet());
+		availableServers.removeAll(retiredServers.keySet());
 		for (NetworkNodes node : servers.values()) {
 			node.restoreConnection(serverId, true);
 		}
+		s.joinServer(availableServers);
 		servers.put(serverId, s);
 	}
 
@@ -227,9 +230,14 @@ public class Master {
 		Client c = new Client(clientId);
 		clients.put(clientId, c);
 		c.joinClient(serverId);
+		try {
+			Thread.sleep(100);
+		} catch (InterruptedException e) {
+		}
 		servers.get(serverId).restoreConnection(clientId, false);
 	}
 
 	static HashMap<Integer, NetworkNodes> servers = new HashMap<>();
+	static HashMap<Integer, NetworkNodes> retiredServers = new HashMap<>();
 	static HashMap<Integer, NetworkNodes> clients = new HashMap<>();
 }

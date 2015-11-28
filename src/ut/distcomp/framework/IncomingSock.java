@@ -65,10 +65,12 @@ public class IncomingSock extends Thread {
 	}
 
 	public void cleanShutdown() {
+		logger.severe("Clean Shutting down incoming thread");
 		shutdownSet = true;
 	}
 
 	protected void shutdown() {
+		logger.severe("Shutting down incoming thread");
 		try {
 			in.close();
 		} catch (IOException e) {

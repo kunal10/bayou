@@ -113,7 +113,8 @@ public class Server implements NetworkNodes {
 
 	private String formatLog(OperationType opType, String songName, String url,
 			boolean isCommited) {
-		String opvalue = songName + ((url != null) ? ("," + url) : "");
+		String opvalue = songName
+				+ ((opType != OperationType.DELETE) ? ("," + url) : "");
 		String stablebool = (isCommited) ? "TRUE" : "FALSE";
 		String s = opType.toString() + ":(" + opvalue + "):" + stablebool;
 		return s;
@@ -162,8 +163,11 @@ public class Server implements NetworkNodes {
 		// Send retire message to that server.
 		Message retire = new Message(serverPid, antiEntropyReq.getSrc());
 		retire.setRetireContent(isPrimary.get());
-		nc.sendMsg(retire);
-		logger.info("Sent retire to " + antiEntropyReq.getSrc());
+		if (nc.sendMsg(retire)) {
+			logger.info("Sent retire to " + antiEntropyReq.getSrc());
+		} else {
+			logger.info("Unsucessful  retire to " + antiEntropyReq.getSrc());
+		}
 		nc.shutdown();
 	}
 
@@ -187,9 +191,11 @@ public class Server implements NetworkNodes {
 
 	@Override
 	public void restoreConnection(int i, boolean isServer) {
+		logger.info("Restoring connection to " + i);
 		try {
 			nc.initOutgoingConn(i);
 			if (isServer) {
+				logger.info("Adding " + i + " to available servers");
 				availableServers.add(i);
 			}
 		} catch (IOException e) {
@@ -213,7 +219,8 @@ public class Server implements NetworkNodes {
 					try {
 						Thread.sleep(1000);
 					} catch (InterruptedException e) {
-						logger.info("Server : " + serverPid + " paused");
+						logger.info("AE thread interrupted while sleep");
+						return;
 					}
 					continue;
 				}
@@ -235,6 +242,8 @@ public class Server implements NetworkNodes {
 				try {
 					Thread.sleep(10);
 				} catch (InterruptedException e) {
+					logger.info("AE thread interrupted while sleep");
+					return;
 				}
 			}
 			logger.info("Closing AE thread");
@@ -376,14 +385,14 @@ public class Server implements NetworkNodes {
 	}
 
 	private void processAntiEntropyReq(Message m) {
-		logger.info("Received a AE Request :" + m.toString());
+		// logger.info("Received a AE Request :" + m.toString());
 		Message response = new Message(m.getDest(), m.getSrc());
 		response.setAntiEntropyResContent(computeWriteSet(m));
 		if (!nc.sendMsg(response)) {
 			logger.info("Uncessful in sending AE response to "
 					+ response.getDest());
 		} else {
-			logger.info("Sent AE response to " + response.toString());
+			// logger.info("Sent AE response to " + response.toString());
 		}
 	}
 
@@ -446,7 +455,7 @@ public class Server implements NetworkNodes {
 
 	private void processAntiEntropyRes(Message m) {
 		SortedSet<Operation> writeSet = m.getWriteSet();
-		logger.info("Received a AE response :" + m.toString());
+		// logger.info("Received a AE response :" + m.toString());
 		if (writeSet == null || writeSet.size() == 0) {
 			return;
 		}
@@ -500,7 +509,7 @@ public class Server implements NetworkNodes {
 			return;
 		}
 		// Add newly created server.
-		// NOTE : 1st server is ignored here since its server id needs to be 
+		// NOTE : 1st server is ignored here since its server id needs to be
 		// handled differently.
 		if (op.getOpType() == OperationType.CREATE && as > 0) {
 			ServerId newServerId = new ServerId(as, sId);
@@ -534,9 +543,11 @@ public class Server implements NetworkNodes {
 			availableServers.add(i);
 			// TODO(asvenk) : Instead of creating connection here, create a
 			// connection to all servers at the start itself and remove this.
-			// This can potentially recreate a broken connection.
+			// This can potentially recreate a broken connection. If you remove
+			// this then you will start an anti entropy session with someone
+			// whose create write you haven't seen yet.
 			if (!nc.isOutgoingAvailable(i)) {
-				restoreConnection(i, true);
+				// restoreConnection(i, true);
 			}
 		}
 	}

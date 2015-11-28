@@ -1,0 +1,26 @@
+joinServer 0
+joinServer 1
+joinServer 2
+joinClient 3 0
+joinClient 4 1
+pause
+breakConnection 0 2
+breakConnection 1 2
+start
+put 3 song1 url1
+put 3 song2 url2
+put 3 song3 url3
+stabilize
+pause
+breakConnection 0 1
+restoreConnection 0 2
+start
+retireServer 0
+put 4 song4 url4
+pause
+restoreConnection 1 2
+start
+stabilize
+printLog 0
+printLog 1
+printLog 2
