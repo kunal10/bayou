@@ -23,7 +23,6 @@ public class ServerId implements Comparable<ServerId>, Serializable {
 			return GREATER;
 		}
 
-		// TODO(klad) : Confirm what does ordering by names mean.
 		if (this.acceptstamp < other.getAcceptstamp()) {
 			return SMALLER;
 		} else if (this.acceptstamp > other.getAcceptstamp()) {

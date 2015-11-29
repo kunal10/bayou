@@ -13,6 +13,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.logging.FileHandler;
 import java.util.logging.Formatter;
+import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
@@ -29,6 +30,7 @@ public class Config {
 	public Config(int procNum, String logfile){
 		this.procNum = procNum;
 		logger = Logger.getLogger("NetFramework" + procNum);
+		logger.setLevel(Level.SEVERE);
 		FileHandler fileHandler = null;
 		try {
 			fileHandler = new FileHandler(logfile);
@@ -65,7 +67,7 @@ public class Config {
 	 * Logger. Mainly used for console printing, though be diverted to a file.
 	 * Verbosity can be restricted by raising level to WARN
 	 */
-	public final Logger logger;
+	public Logger logger;
 
 	public static final int basePort = 5000;
 

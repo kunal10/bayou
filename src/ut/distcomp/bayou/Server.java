@@ -81,8 +81,7 @@ public class Server implements NetworkNodes {
 				String songName = operation.getSong();
 				String url = operation.getUrl();
 				boolean isCommited = operation.getWriteId().isCommitted();
-				printLog.add(formatLog(opType, songName, url, isCommited)
-						+ " : " + operation.getWriteId().toString());
+				printLog.add(formatLog(opType, songName, url, isCommited));
 			}
 		}
 		return printLog;
@@ -544,20 +543,16 @@ public class Server implements NetworkNodes {
 	private void addToAvailableServers(int i) {
 		if (i != serverPid) {
 			availableServers.add(i);
-			// TODO(asvenk) : Instead of creating connection here, create a
-			// connection to all servers at the start itself and remove this.
-			// This can potentially recreate a broken connection. If you remove
-			// this then you will start an anti entropy session with someone
-			// whose create write you haven't seen yet.
-			if (!nc.isOutgoingAvailable(i)) {
-				// restoreConnection(i, true);
-			}
 		}
+	}
+
+	public Logger getLogger() {
+		return logger;
 	}
 
 	private final int serverPid;
 	private final NetController nc;
-	private final Logger logger;
+	private Logger logger;
 	private final LinkedBlockingQueue<Message> queue;
 	private final DataStore dataStore;
 	private final Set<Integer> availableServers;

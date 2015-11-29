@@ -2,6 +2,7 @@ package ut.distcomp.bayou;
 
 import java.io.IOException;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.logging.Logger;
 
 import ut.distcomp.bayou.Operation.OperationType;
 import ut.distcomp.framework.Config;
@@ -15,6 +16,7 @@ public class Client implements NetworkNodes {
 				new Config(clientId, "LogClient" + clientId), queue);
 		this.clientId = clientId;
 		this.sessionManager = new SessionManager(clientId, serverId, nc, queue);
+		this.logger = nc.getConfig().logger;
 	}
 
 	public void joinClient(int i) {
@@ -52,8 +54,13 @@ public class Client implements NetworkNodes {
 	public void restoreConnection(int i, boolean isServer) {
 		joinClient(i);
 	}
+	
+	public Logger getLogger() {
+		return logger;
+	}
 
 	private int serverId;
+	private Logger logger;
 	private final int clientId;
 	private final SessionManager sessionManager;
 	private final NetController nc;

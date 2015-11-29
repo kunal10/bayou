@@ -241,7 +241,6 @@ public class Message implements Serializable {
 	private MessageType msgType;
 	private Operation op;
 	private WriteId writeId;
-	// TODO: Implement copy constructor for this ?
 	private SortedSet<Operation> writeSet;
 	private Map<ServerId, Integer> versionVector;
 	private int csn;

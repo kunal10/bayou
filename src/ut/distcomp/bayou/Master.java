@@ -6,16 +6,18 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.logging.Level;
 
 public class Master {
 
 	public static void main(String[] args) {
 		Scanner scan = new Scanner(System.in);
+		disableLogging(true);
 		while (scan.hasNextLine()) {
 			String[] inputLine = scan.nextLine().split(" ");
 			int clientId, serverId, id1, id2;
 			String songName, URL;
-			System.out.println(inputLine[0]);
+			// System.out.println(inputLine[0]);
 			switch (inputLine[0]) {
 			case "joinServer":
 				serverId = Integer.parseInt(inputLine[1]);
@@ -96,6 +98,7 @@ public class Master {
 				songName = inputLine[2];
 				URL = inputLine[3];
 				put(clientId, songName, URL);
+				
 				/*
 				 * Instruct the client specified to associate the given URL with
 				 * the given songName. This command should block until the
@@ -131,6 +134,19 @@ public class Master {
 			((Server) s).stopThreads();
 		}
 		System.exit(0);
+	}
+
+	private static void disableLogging(boolean b) {
+		if (b) {
+			for (NetworkNodes s : servers.values()) {
+				Server s1 = (Server) s;
+				s1.getLogger().setLevel(Level.SEVERE);
+			}
+			for (NetworkNodes c : clients.values()) {
+				Client c1 = (Client) c;
+				c1.getLogger().setLevel(Level.SEVERE);
+			}
+		}
 	}
 
 	private static void retireServer(int serverId) {

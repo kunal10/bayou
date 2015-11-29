@@ -20,6 +20,18 @@ public class WriteId implements Comparable<WriteId>, Serializable {
 		return this.acceptstamp == other.getAcceptstamp()
 				&& this.serverId.equals(other.getServerId());
 	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		if (obj == this) {
+			return true;
+		}
+		if (obj == null || obj.getClass() != this.getClass()) {
+			return false;
+		}
+		WriteId other = (WriteId) obj;
+		return (compareTo(other) == EQUAL);
+	};
 
 	@Override
 	public int compareTo(WriteId other) {
@@ -32,8 +44,13 @@ public class WriteId implements Comparable<WriteId>, Serializable {
 		if (this.csn != POSITIVE_INFINITY) {
 			if (this.csn < other.getCsn()) {
 				return SMALLER;
+			} else if (this.csn > other.getCsn()) {
+				return GREATER;
+			} else {
+				// NOTE : This should always return equal, because by protocol
+				// 2 different writes can never get same csn.
+				return this.serverId.compareTo(other.getServerId());
 			}
-			return GREATER;
 		} else if (other.getCsn() != POSITIVE_INFINITY) {
 			return GREATER;
 		} else { // Both have csn inifnity.
