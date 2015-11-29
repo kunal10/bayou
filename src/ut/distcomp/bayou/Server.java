@@ -114,7 +114,7 @@ public class Server implements NetworkNodes {
 	private String formatLog(OperationType opType, String songName, String url,
 			boolean isCommited) {
 		String opvalue = songName
-				+ ((opType != OperationType.DELETE) ? ("," + url) : "");
+				+ ((opType != OperationType.DELETE) ? (", " + url) : "");
 		String stablebool = (isCommited) ? "TRUE" : "FALSE";
 		String s = opType.toString() + ":(" + opvalue + "):" + stablebool;
 		return s;

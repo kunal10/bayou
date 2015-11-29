@@ -13,9 +13,9 @@ breakConnection 2 3
 start
 put 4 song1 url1
 put 5 song2 url2
+stabilize
 get 6 song1
 get 6 song2
-stabilize
 pause
 breakConnection 6 2
 restoreConnection 6 3

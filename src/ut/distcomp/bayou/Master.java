@@ -150,11 +150,12 @@ public class Master {
 	private static void printLog(int serverId) {
 		Server s = (Server) servers.get(serverId);
 		List<String> l = s.printLog();
-		if (l != null) {
-			for (String string : l) {
-				System.out.println(string);
+		if (l != null && l.size() != 0) {
+			int i = 0;
+			for (i = 0; i < l.size(); i++) {
+				System.out.println(l.get(i));
 			}
-		} 
+		}
 	}
 
 	private static void delete(int clientId, String songName) {
