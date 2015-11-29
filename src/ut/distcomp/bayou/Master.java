@@ -78,18 +78,10 @@ public class Master {
 				break;
 			case "stabilize":
 				try {
-					Thread.sleep(5000);
+					Thread.sleep(2 * antiEntropyDelay
+							* (servers.size() - retiredServers.size()));
 				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
 				}
-				/*
-				 * TODO: Block until there are enough Anti-Entropy messages for
-				 * all values to propagate through the currently connected
-				 * servers. In general, the time that this function blocks for
-				 * should increase linearly with the number of servers in the
-				 * system.
-				 */
 				break;
 			case "printLog":
 				serverId = Integer.parseInt(inputLine[1]);
@@ -241,4 +233,6 @@ public class Master {
 	static HashMap<Integer, NetworkNodes> servers = new HashMap<>();
 	static HashMap<Integer, NetworkNodes> retiredServers = new HashMap<>();
 	static HashMap<Integer, NetworkNodes> clients = new HashMap<>();
+
+	static final int antiEntropyDelay = 250;
 }

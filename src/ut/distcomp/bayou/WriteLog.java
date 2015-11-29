@@ -64,7 +64,18 @@ public class WriteLog {
 				// Old write is tentative, new write is committed.
 				// Remove old and add new at above determined position.
 				log.remove(oldIndex);
-				log.add(index, op);
+				if (index < log.size()) {
+					log.add(index, op);
+				} else {
+					logger.info("Index: " + index);
+					logger.info("Size: " + log.size());
+					for (int i = 0; i < log.size(); i++) {
+						logger.info(i + ": " + log.get(i).toString()); 
+					}
+					logger.info(
+							"Adding at the end of the log: " + op.toString());
+					log.add(op);
+				}
 			}
 		}
 	}

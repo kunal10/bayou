@@ -217,7 +217,7 @@ public class Server implements NetworkNodes {
 			while (!this.isInterrupted()) {
 				if (pause) {
 					try {
-						Thread.sleep(1000);
+						Thread.sleep(100);
 					} catch (InterruptedException e) {
 						logger.info("AE thread interrupted while sleep");
 						return;
@@ -231,16 +231,16 @@ public class Server implements NetworkNodes {
 						Message request = new Message(serverPid, dest);
 						request.setAntiEntropyReqContent(versionVector, csn);
 						nc.sendMsg(request);
-						try {
-							Thread.sleep(500);
-						} catch (InterruptedException e) {
-							logger.info("AE thread interrupted while sleep");
-							return;
-						}
+//						try {
+//							Thread.sleep(100);
+//						} catch (InterruptedException e) {
+//							logger.info("AE thread interrupted while sleep");
+//							return;
+//						}
 					}
 				}
 				try {
-					Thread.sleep(10);
+					Thread.sleep(Master.antiEntropyDelay);
 				} catch (InterruptedException e) {
 					logger.info("AE thread interrupted while sleep");
 					return;
