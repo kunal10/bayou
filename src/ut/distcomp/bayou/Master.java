@@ -12,7 +12,6 @@ public class Master {
 
 	public static void main(String[] args) {
 		Scanner scan = new Scanner(System.in);
-		disableLogging(true);
 		while (scan.hasNextLine()) {
 			String[] inputLine = scan.nextLine().split(" ");
 			int clientId, serverId, id1, id2;
@@ -134,19 +133,6 @@ public class Master {
 			((Server) s).stopThreads();
 		}
 		System.exit(0);
-	}
-
-	private static void disableLogging(boolean b) {
-		if (b) {
-			for (NetworkNodes s : servers.values()) {
-				Server s1 = (Server) s;
-				s1.getLogger().setLevel(Level.SEVERE);
-			}
-			for (NetworkNodes c : clients.values()) {
-				Client c1 = (Client) c;
-				c1.getLogger().setLevel(Level.SEVERE);
-			}
-		}
 	}
 
 	private static void retireServer(int serverId) {
