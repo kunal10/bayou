@@ -22,9 +22,16 @@ public class WriteLog {
 	public int findInsertionPoint(int startIndex, Operation op) {
 		int index = startIndex;
 		WriteId writeId = op.getWriteId();
+		for (Operation operation : log) {
+			logger.info("WRITE LOG: "+operation.getWriteId().toString());
+		}
 		while (index < log.size()) {
 			int result = writeId.compareTo(log.get(index).getWriteId());
 			if (result == WriteId.SMALLER) {
+				logger.info("S WRITE LOG - Result:" + result);
+				logger.info("S WRITE LOG - 1:" + writeId.toString());
+				logger.info("S WRITE LOG - 2:" + log.get(index).getWriteId());
+				logger.info("S WRITE LOG Index" + index);
 				return index;
 			} else if (result == WriteId.EQUAL) {
 				logger.info("Op already present in WriteLog: " + op.toString());
@@ -47,12 +54,14 @@ public class WriteLog {
 		while (it.hasNext()) {
 			Operation op = it.next();
 			index = findInsertionPoint(index, op);
+			logger.info("Insertion point in insert function : " + index);
 			WriteId writeId = op.getWriteId();
 			int oldIndex = indexOf(writeId);
 			if (oldIndex == -1) {
 				if (isPrimary.get() && !writeId.isCommitted()) {
 					writeId.setCsn(csn.incrementAndGet());
 				}
+				logger.info("INSERT new: " + index + ":" + op.toString());
 				log.add(index, op);
 			} else {
 				WriteId oldWriteId = log.get(oldIndex).getWriteId();
@@ -65,12 +74,15 @@ public class WriteLog {
 				// Remove old and add new at above determined position.
 				log.remove(oldIndex);
 				if (index < log.size()) {
+
 					log.add(index, op);
+					logger.info("INSERT old : " + oldIndex + "new" + index + ":"
+							+ op.toString());
 				} else {
 					logger.info("Index: " + index);
 					logger.info("Size: " + log.size());
 					for (int i = 0; i < log.size(); i++) {
-						logger.info(i + ": " + log.get(i).toString()); 
+						logger.info(i + ": " + log.get(i).toString());
 					}
 					logger.info(
 							"Adding at the end of the log: " + op.toString());

@@ -81,7 +81,8 @@ public class Server implements NetworkNodes {
 				String songName = operation.getSong();
 				String url = operation.getUrl();
 				boolean isCommited = operation.getWriteId().isCommitted();
-				printLog.add(formatLog(opType, songName, url, isCommited));
+				printLog.add(formatLog(opType, songName, url, isCommited)
+						+ " : " + operation.getWriteId().toString());
 			}
 		}
 		return printLog;
@@ -231,12 +232,12 @@ public class Server implements NetworkNodes {
 						Message request = new Message(serverPid, dest);
 						request.setAntiEntropyReqContent(versionVector, csn);
 						nc.sendMsg(request);
-//						try {
-//							Thread.sleep(100);
-//						} catch (InterruptedException e) {
-//							logger.info("AE thread interrupted while sleep");
-//							return;
-//						}
+						// try {
+						// Thread.sleep(100);
+						// } catch (InterruptedException e) {
+						// logger.info("AE thread interrupted while sleep");
+						// return;
+						// }
 					}
 				}
 				try {
@@ -463,6 +464,8 @@ public class Server implements NetworkNodes {
 		// Find insertion point of 1st write not already present in writeLog
 		Operation op = writeSet.first();
 		int insertionPoint = writeLog.findInsertionPoint(0, op);
+		logger.info(
+				"Insertion point in processing anti entropy " + insertionPoint);
 		// Rollback to insertion point.
 		dataStore.rollbackTo(insertionPoint, writeLog);
 		// Insert unknown writes.

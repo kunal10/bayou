@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -118,7 +119,7 @@ public class Message implements Serializable {
 		srcType = NodeType.SERVER;
 		destType = NodeType.SERVER;
 		msgType = MessageType.ANTI_ENTROPY_RES;
-		writeSet = unknownWrites;
+		writeSet = new TreeSet<>(unknownWrites);
 	}
 
 	// A specific type of write for creation. The only effect of this write
@@ -137,7 +138,7 @@ public class Message implements Serializable {
 		destType = NodeType.SERVER;
 		msgType = MessageType.CREATE_RES;
 		writeId = wId;
-		writeSet = wSet;
+		writeSet = new TreeSet<>(wSet);
 	}
 
 	public void setRetireContent(boolean isPrimaryServer) {
