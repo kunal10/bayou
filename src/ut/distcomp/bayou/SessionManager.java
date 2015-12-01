@@ -174,7 +174,11 @@ public class SessionManager {
 		logVector(serverState);
 		nc.getConfig().logger.info("and");
 		logVector(clientVector);
+		logger.info("Exclude vector :");
 		List<ServerId> excludeVector = serverStateResp.getRetiredServers();
+		for (ServerId rs : excludeVector) {
+			logger.info(rs.toString());
+		}
 		for (ServerId server : clientVector.keySet()) {
 			if (!excludeVector.contains(server)) {
 				if (serverState.containsKey(server)) {

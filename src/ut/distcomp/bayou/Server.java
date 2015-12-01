@@ -145,6 +145,10 @@ public class Server implements NetworkNodes {
 	}
 
 	public void retireServer() {
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
+		}
 		// Run retirement protocol
 		// Shutdown receive and anti entropy threads.
 		logger.info("Attempting to shut down threads");

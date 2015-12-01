@@ -39,7 +39,8 @@ public class IncomingSock extends Thread {
 		while (!shutdownSet) {
 			try {
 				Message msg = (Message) in.readObject();
-				logger.info("Added to queue : " + msg.getMsgType().toString());
+				logger.info("Added to queue : " + msg.getMsgType().toString()
+						+ " from " + msg.getSrc());
 				queue.add(msg);
 			} catch (EOFException e) {
 				logger.log(Level.SEVERE, "EOF Exception");
