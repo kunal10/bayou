@@ -170,11 +170,21 @@ public class SessionManager {
 		logVector(serverVector);
 		nc.getConfig().logger.info("and");
 		logVector(clientVector);
-		for (ServerId server : serverVector.keySet()) {
-			if (clientVector.containsKey(server)) {
-				if (serverVector.get(server) < clientVector.get(server)) {
+//		for (ServerId server : serverVector.keySet()) {
+//			if (clientVector.containsKey(server)) {
+//				if (serverVector.get(server) < clientVector.get(server)) {
+//					return false;
+//				}
+//			}
+//		}
+
+		for (ServerId server : clientVector.keySet()) {
+			if (serverVector.containsKey(server)) {
+				if(serverVector.get(server) < clientVector.get(server)){
 					return false;
 				}
+			} else {
+				return false;
 			}
 		}
 		return true;

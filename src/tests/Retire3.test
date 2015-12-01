@@ -1,0 +1,67 @@
+joinServer 0
+joinServer 1
+joinServer 2
+joinServer 3
+joinServer 4
+joinServer 5
+joinServer 6
+joinClient 7 1
+joinClient 8 4
+joinClient 9 5
+joinClient 10 6
+pause
+breakConnection 0 2
+breakConnection 0 3
+breakConnection 1 3
+breakConnection 4 0
+breakConnection 4 1
+breakConnection 4 2
+breakConnection 4 3
+breakConnection 4 5
+breakConnection 4 6
+breakConnection 5 0
+breakConnection 5 1
+breakConnection 5 2
+breakConnection 5 3
+breakConnection 5 4
+breakConnection 5 6
+breakConnection 6 0
+breakConnection 6 1
+breakConnection 6 2
+breakConnection 6 3
+breakConnection 6 4
+breakConnection 6 5
+start
+put 7 song1 url1
+stabilize
+retireServer 0
+put 7 song2 url2
+put 8 song3 url3
+put 9 song4 url4
+put 10 song5 url5
+stabilize
+printLog 0
+printLog 1
+printLog 2
+printLog 3
+printLog 4
+printLog 5
+printLog 6
+pause
+restoreConnection 4 1
+restoreConnection 5 2
+restoreConnection 6 3
+start
+retireServer 4
+retireServer 5
+retireServer 6
+stabilize
+printLog 0
+printLog 1
+printLog 2
+printLog 3
+printLog 4
+printLog 5
+printLog 6
+
+
