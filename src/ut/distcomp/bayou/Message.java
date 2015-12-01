@@ -1,9 +1,11 @@
 package ut.distcomp.bayou;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -56,13 +58,17 @@ public class Message implements Serializable {
 		msgType = MessageType.STATE_REQ;
 	}
 
-	public void setStateResContent(Map<ServerId, Integer> vv) {
+	public void setStateResContent(Map<ServerId, Integer> vv,
+			List<ServerId> retiredServers) {
 		srcType = NodeType.SERVER;
 		destType = NodeType.CLIENT;
 		msgType = MessageType.STATE_RES;
 		synchronized (vv) {
 			versionVector = Collections
 					.synchronizedMap(new HashMap<ServerId, Integer>(vv));
+		}
+		synchronized (retiredServers) {
+			this.retiredServers = new ArrayList<>(retiredServers);
 		}
 	}
 
@@ -234,6 +240,10 @@ public class Message implements Serializable {
 		return isPrimary;
 	}
 
+	public List<ServerId> getRetiredServers() {
+		return retiredServers;
+	}
+
 	private int src;
 	private int dest;
 	private NodeType srcType;
@@ -243,6 +253,7 @@ public class Message implements Serializable {
 	private WriteId writeId;
 	private SortedSet<Operation> writeSet;
 	private Map<ServerId, Integer> versionVector;
+	private List<ServerId> retiredServers;
 	private int csn;
 	private boolean isPrimary;
 

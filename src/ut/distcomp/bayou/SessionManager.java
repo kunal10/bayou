@@ -2,6 +2,7 @@ package ut.distcomp.bayou;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.logging.Logger;
@@ -27,16 +28,18 @@ public class SessionManager {
 	public String ExecuteTransaction(OperationType op, String songName,
 			String url) {
 		logger.info("Executing transaction : " + op.toString());
-		Map<ServerId, Integer> serverVector = getServerState();
+		Message serverState = getServerState();
+		Map<ServerId, Integer> serverVector = serverState.getVersionVector();
+		List<ServerId> excludeVector = serverState.getRetiredServers();
 		if (op == OperationType.GET) {
-			return Read(serverVector, songName);
+			return Read(serverState, songName);
 		} else {
-			Write(serverVector, songName, url, op);
+			Write(serverState, songName, url, op);
 		}
 		return null;
 	}
 
-	private Map<ServerId, Integer> getServerState() {
+	private Message getServerState() {
 		Map<ServerId, Integer> serverState = Collections
 				.synchronizedMap(new HashMap<>());
 		Message request = new Message(clientId, serverProcId);
@@ -55,13 +58,13 @@ public class SessionManager {
 		} else {
 			serverState = response.getVersionVector();
 		}
-		return serverState;
+		return response;
 	}
 
-	private String Read(Map<ServerId, Integer> serverVector, String songName) {
+	private String Read(Message serverState, String songName) {
 		String result = "";
 		nc.getConfig().logger.info("Initiating read : " + songName);
-		if (guarantee(serverVector)) {
+		if (guarantee(serverState)) {
 			// Send a message to read to the server
 			sendReadToServer(songName);
 			// Extract the result and the server vector
@@ -122,10 +125,10 @@ public class SessionManager {
 		nc.getConfig().logger.info("Client sending write " + m.toString());
 	}
 
-	private void Write(Map<ServerId, Integer> serverVector, String songName,
-			String url, OperationType op) {
+	private void Write(Message serverState, String songName, String url,
+			OperationType op) {
 		nc.getConfig().logger.info("Initiating write : " + songName);
-		if (guarantee(serverVector)) {
+		if (guarantee(serverState)) {
 			logger.info("Server write is guranteed");
 			// Send a write to the server
 			sendWriteToServer(songName, url, op);
@@ -147,13 +150,13 @@ public class SessionManager {
 		}
 	}
 
-	private boolean guarantee(Map<ServerId, Integer> serverVector) {
+	private boolean guarantee(Message serverState) {
 		// Check whether S dominates the read vector
-		if (!dominates(serverVector, readVector)) {
+		if (!dominates(serverState, readVector)) {
 			nc.getConfig().logger.info("Cannot provide read gurantee");
 			return false;
 		}
-		if (!dominates(serverVector, writeVector)) {
+		if (!dominates(serverState, writeVector)) {
 			nc.getConfig().logger.info("Cannot provide write gurantee");
 			return false;
 		}
@@ -164,27 +167,23 @@ public class SessionManager {
 	 * Server vector is dominant to client vector if its is greater than equal
 	 * to all components.
 	 */
-	private boolean dominates(Map<ServerId, Integer> serverVector,
+	private boolean dominates(Message serverStateResp,
 			Map<ServerId, Integer> clientVector) {
+		Map<ServerId, Integer> serverState = serverStateResp.getVersionVector();
 		nc.getConfig().logger.info("Comparing vectors ");
-		logVector(serverVector);
+		logVector(serverState);
 		nc.getConfig().logger.info("and");
 		logVector(clientVector);
-//		for (ServerId server : serverVector.keySet()) {
-//			if (clientVector.containsKey(server)) {
-//				if (serverVector.get(server) < clientVector.get(server)) {
-//					return false;
-//				}
-//			}
-//		}
-
+		List<ServerId> excludeVector = serverStateResp.getRetiredServers();
 		for (ServerId server : clientVector.keySet()) {
-			if (serverVector.containsKey(server)) {
-				if(serverVector.get(server) < clientVector.get(server)){
+			if (!excludeVector.contains(server)) {
+				if (serverState.containsKey(server)) {
+					if (serverState.get(server) < clientVector.get(server)) {
+						return false;
+					}
+				} else {
 					return false;
 				}
-			} else {
-				return false;
 			}
 		}
 		return true;

@@ -39,6 +39,7 @@ public class Server implements NetworkNodes {
 		this.writeLog = new WriteLog(isPrimary, csn, logger);
 		this.pause = false;
 		this.availableServers = Collections.synchronizedSet(new HashSet<>());
+		this.retiredServers = new ArrayList<>();
 	}
 
 	// Interface used by master to add a server.
@@ -341,7 +342,7 @@ public class Server implements NetworkNodes {
 		private void processStateReq(Message m) {
 			logger.info("Received a state Request :" + m.toString());
 			Message stateResp = new Message(serverPid, m.getSrc());
-			stateResp.setStateResContent(versionVector);
+			stateResp.setStateResContent(versionVector, retiredServers);
 			logger.info(stateResp.toString());
 			nc.sendMsg(stateResp);
 		}
@@ -532,6 +533,7 @@ public class Server implements NetworkNodes {
 			if (serverId != op.getWriteId().getServerId()) {
 				versionVector.remove(op.getWriteId().getServerId());
 				availableServers.remove(op.getPid());
+				retiredServers.add(op.getWriteId().getServerId());
 				breakConnection(op.getPid());
 			}
 		} else if (op.getOpType() == OperationType.CREATE) {
@@ -565,4 +567,5 @@ public class Server implements NetworkNodes {
 	private boolean pause;
 	private ReceiveThread receiveThread;
 	private AntiEntropyThread atThread;
+	private List<ServerId> retiredServers;
 }
