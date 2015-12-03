@@ -236,12 +236,6 @@ public class Server implements NetworkNodes {
 						Message request = new Message(serverPid, dest);
 						request.setAntiEntropyReqContent(versionVector, csn);
 						nc.sendMsg(request);
-						// try {
-						// Thread.sleep(100);
-						// } catch (InterruptedException e) {
-						// logger.info("AE thread interrupted while sleep");
-						// return;
-						// }
 					}
 				}
 				try {
